@@ -1,0 +1,79 @@
+name: ML Pipeline
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+  workflow_dispatch:      # Allows manual triggering
+    inputs:
+      max_pages:
+        description: 'Number of pages to scrape (use "all" for all pages)'
+        required: true
+        default: 'all'
+
+env:
+  PYTHON_VERSION: '3.11'
+  DB_SERVER: ${{ secrets.DB_SERVER }}
+  DB_NAME: ${{ secrets.DB_NAME }}
+  DB_USER: ${{ secrets.DB_USER }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  BLOB_CONNECTION_STRING: ${{ secrets.BLOB_CONNECTION_STRING }}
+  BLOB_CONTAINER_NAME: ${{ secrets.BLOB_CONTAINER_NAME }}
+  MAX_PAGES: ${{ github.event.inputs.max_pages || secrets.SCHEDULED_MAX_PAGES }}
+
+jobs:
+  selling-properties:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Update scraper config
+        run: |
+          sed -i "s/'max_pages': '[^']*'/'max_pages': '${{ env.MAX_PAGES }}'/" aruodas_scraper/config/settings.py
+          sed -i "s/'category': '[^']*'/'category': 'butai'/" aruodas_scraper/config/settings.py
+          
+      - name: Run selling properties pipeline
+        run: python main.py
+
+  rental-properties:
+    needs: selling-properties
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Update scraper config
+        run: |
+          sed -i "s/'max_pages': '[^']*'/'max_pages': '${{ env.MAX_PAGES }}'/" aruodas_scraper/config/settings.py
+          sed -i "s/'category': '[^']*'/'category': 'butu-nuoma'/" aruodas_scraper/config/settings.py
+          
+      - name: Run rental properties pipeline
+        run: python main.py

@@ -1,0 +1,52 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="aruodas_scraper",
+    version="1.0.0",
+    packages=find_packages(),
+    install_requires=[
+        'selenium>=4.29.0',
+        'selenium-stealth>=1.0.6',
+        'pandas>=2.2.3',
+        'numpy>=2.2.3',
+        'pyodbc>=5.2.0',
+        'python-dotenv>=1.0.1',
+        'unidecode>=1.3.8',
+        'scikit-learn>=1.4.0',
+        'xgboost>=2.0.0',
+        'lightgbm>=4.3.0',
+        'joblib>=1.3.0',
+        'fastapi>=0.109.0',
+        'uvicorn>=0.27.0',
+        'pydantic>=2.6.0',
+        'azure-storage-blob>=12.19.0',
+        'geopy>=2.4.0',
+        'streamlit>=1.32.0',
+    ],
+    extras_require={
+        'dev': [
+            'pytest>=8.0.0',
+            'black>=24.1.0',
+            'pylint>=3.0.0',
+        ],
+    },
+    python_requires='>=3.8',
+    author="Your Name",
+    author_email="your.email@example.com",
+    description="A comprehensive real estate analytics platform for Aruodas.lt",
+    long_description=open('README.md').read(),
+    long_description_content_type="text/markdown",
+    keywords="real-estate, web-scraping, machine-learning, price-prediction",
+    project_urls={
+        "Source": "https://github.com/yourusername/aruodas_scraper",
+    },
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+    ],
+)
