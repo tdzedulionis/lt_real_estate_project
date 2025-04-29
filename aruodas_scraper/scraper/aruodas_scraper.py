@@ -14,6 +14,7 @@ import time
 import random
 import re
 from datetime import datetime
+import os
 from ..config.settings import SCRAPER_CONFIG
 
 class AruodasScraper:
@@ -43,7 +44,12 @@ class AruodasScraper:
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        options.binary_location = "/usr/bin/chromium-browser"
+        
+        # Try google-chrome first, fall back to chromium-browser
+        if os.path.exists('/usr/bin/google-chrome'):
+            options.binary_location = '/usr/bin/google-chrome'
+        else:
+            options.binary_location = '/usr/bin/chromium-browser'
         self.driver = webdriver.Chrome(service=Service(), options=options)
         self.driver.set_page_load_timeout(self.page_load_timeout)
 
