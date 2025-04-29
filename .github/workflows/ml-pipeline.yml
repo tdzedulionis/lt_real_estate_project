@@ -62,6 +62,18 @@ jobs:
           sudo chmod +x /usr/bin/chromedriver
           chromedriver --version
           
+      - name: Debug environment
+        run: |
+          echo "Environment check:"
+          which python
+          python --version
+          which google-chrome
+          google-chrome --version
+          which chromedriver
+          chromedriver --version
+          echo "Network check:"
+          curl -I https://www.aruodas.lt/
+          
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -118,6 +130,18 @@ jobs:
           sudo chown root:root /usr/bin/chromedriver
           sudo chmod +x /usr/bin/chromedriver
           chromedriver --version
+          
+      - name: Debug environment
+        run: |
+          echo "Environment check:"
+          which python
+          python --version
+          which google-chrome
+          google-chrome --version
+          which chromedriver
+          chromedriver --version
+          echo "Network check:"
+          curl -I https://www.aruodas.lt/
           
       - name: Install dependencies
         run: |

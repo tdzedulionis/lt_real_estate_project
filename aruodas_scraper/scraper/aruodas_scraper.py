@@ -237,47 +237,67 @@ class AruodasScraper:
 
         while max_pages == "all" or page <= max_pages:
             url = self.base_url.format(page)
-            self.driver.get(url)
-            time.sleep(2)  # Ensure page loads
             
-            # Check if we've reached the last page by finding the disabled "next page" button
+            # Add debugging
+            print("\nAttempting to visit URL:", url)
             try:
-                disabled_next_button = self.driver.find_elements(By.XPATH, '//a[@class="page-bt-disabled" and text()="»"]')
-                if disabled_next_button:
-                    self.logger.info("Found disabled next page button - reached the last page")
+                self.driver.get(url)
+                time.sleep(5)  # Increase wait time
+                print("Page title:", self.driver.title)
+                print("Page source length:", len(self.driver.page_source))
+                
+                # Take screenshot for debugging
+                self.driver.save_screenshot('/tmp/screenshot.png')
+                print("Saved screenshot to /tmp/screenshot.png")
+                
+                # Check page content
+                if "captcha" in self.driver.page_source.lower():
+                    print("CAPTCHA detected!")
+                
+                time.sleep(2)  # Ensure page loads
+                
+                # Check if we've reached the last page by finding the disabled "next page" button
+                try:
+                    disabled_next_button = self.driver.find_elements(By.XPATH, '//a[@class="page-bt-disabled" and text()="»"]')
+                    if disabled_next_button:
+                        self.logger.info("Found disabled next page button - reached the last page")
+                        break
+                except WebDriverException as e:
+                    self.logger.debug(f"Error checking for disabled next button: {e}")
+                
+                # Get current page's listing links
+                current_links = self._listing_links(url)
+
+                if not current_links:
+                    self.logger.info(f"No links found on page {page}")
                     break
+                
+                # One more check to test if the last page is reached (compare set of links in previous page with links in curr page)
+                if previous_links and set(current_links) == set(previous_links):
+                    self.logger.info("Reached the last page")
+                    break
+
+                total_links = len(current_links)
+                print(f"\nFound {total_links} listings on page {page}")
+                
+                for i, link in enumerate(current_links, 1):
+                    print(f"\rProcessing listing {i}/{total_links} on page {page}...", end="")
+                    data = self._parse_listing(link)
+                    if data:
+                        self.data_list.append(data)
+                        successful_scrapes += 1
+                    else:
+                        failed_scrapes += 1
+                print(f"\nCompleted page {page} - Success: {successful_scrapes}, Failed: {failed_scrapes}")
+                previous_links = current_links
+                page += 1
+
+                # Apply rate limiting between pages
+                time.sleep(SCRAPER_CONFIG['wait_time'])
+
             except WebDriverException as e:
-                self.logger.debug(f"Error checking for disabled next button: {e}")
-            
-            # Get current page's listing links
-            current_links = self._listing_links(url)
-
-            if not current_links:
-                self.logger.info(f"No links found on page {page}")
+                self.logger.error(f"WebDriver error: {e}")
                 break
-            
-            # One more check to test if the last page is reached (compare set of links in previous page with links in curr page)
-            if previous_links and set(current_links) == set(previous_links):
-                self.logger.info("Reached the last page")
-                break
-
-            total_links = len(current_links)
-            print(f"\nFound {total_links} listings on page {page}")
-            
-            for i, link in enumerate(current_links, 1):
-                print(f"\rProcessing listing {i}/{total_links} on page {page}...", end="")
-                data = self._parse_listing(link)
-                if data:
-                    self.data_list.append(data)
-                    successful_scrapes += 1
-                else:
-                    failed_scrapes += 1
-            print(f"\nCompleted page {page} - Success: {successful_scrapes}, Failed: {failed_scrapes}")
-            previous_links = current_links
-            page += 1
-
-            # Apply rate limiting between pages
-            time.sleep(SCRAPER_CONFIG['wait_time'])
 
     def close(self):
         """Close the WebDriver instance."""
