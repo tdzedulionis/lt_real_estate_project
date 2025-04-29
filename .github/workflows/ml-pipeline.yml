@@ -43,14 +43,21 @@ jobs:
           which google-chrome
           google-chrome --version
           
-          # Install matching ChromeDriver
-          CHROME_VERSION=$(google-chrome --version | cut -d ' ' -f3 | cut -d '.' -f1)
-          echo "Chrome version: $CHROME_VERSION"
-          CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-          echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
-          wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
+          # Use Chrome for Testing for versions 115+
+          CHROME_VERSION=$(google-chrome --version | cut -d ' ' -f3)
+          CHROME_MAJOR=$(echo $CHROME_VERSION | cut -d '.' -f1)
+          
+          echo "Chrome major version: $CHROME_MAJOR"
+          
+          # Download and install appropriate ChromeDriver
+          wget -q -O chrome-versions.json https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json
+          
+          CHROMEDRIVER_URL=$(jq -r ".versions[] | select(.version | startswith(\"$CHROME_MAJOR.\")) | .downloads.chromedriver[] | select(.platform==\"linux64\") | .url" chrome-versions.json | head -1)
+          echo "ChromeDriver URL: $CHROMEDRIVER_URL"
+          
+          wget -q "$CHROMEDRIVER_URL" -O chromedriver_linux64.zip
           unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/bin/chromedriver
+          sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
           sudo chown root:root /usr/bin/chromedriver
           sudo chmod +x /usr/bin/chromedriver
           chromedriver --version
@@ -93,14 +100,21 @@ jobs:
           which google-chrome
           google-chrome --version
           
-          # Install matching ChromeDriver
-          CHROME_VERSION=$(google-chrome --version | cut -d ' ' -f3 | cut -d '.' -f1)
-          echo "Chrome version: $CHROME_VERSION"
-          CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-          echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
-          wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
+          # Use Chrome for Testing for versions 115+
+          CHROME_VERSION=$(google-chrome --version | cut -d ' ' -f3)
+          CHROME_MAJOR=$(echo $CHROME_VERSION | cut -d '.' -f1)
+          
+          echo "Chrome major version: $CHROME_MAJOR"
+          
+          # Download and install appropriate ChromeDriver
+          wget -q -O chrome-versions.json https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json
+          
+          CHROMEDRIVER_URL=$(jq -r ".versions[] | select(.version | startswith(\"$CHROME_MAJOR.\")) | .downloads.chromedriver[] | select(.platform==\"linux64\") | .url" chrome-versions.json | head -1)
+          echo "ChromeDriver URL: $CHROMEDRIVER_URL"
+          
+          wget -q "$CHROMEDRIVER_URL" -O chromedriver_linux64.zip
           unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/bin/chromedriver
+          sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
           sudo chown root:root /usr/bin/chromedriver
           sudo chmod +x /usr/bin/chromedriver
           chromedriver --version
