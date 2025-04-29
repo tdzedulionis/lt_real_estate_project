@@ -1,12 +1,10 @@
 """Web scraper for the Aruodas.lt real estate website using Selenium."""
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
-from selenium_stealth import stealth
 from urllib.parse import unquote
 import pandas as pd
 import logging
@@ -36,59 +34,30 @@ class AruodasScraper:
         self.data_list = []
         self.page_load_timeout = page_load_timeout
 
-        # Selenium WebDriver setup
-            
-        # Selenium WebDriver setup
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless=new')  # Use newer headless mode
-        options.add_argument('--window-size=1920,1080')  # Standard resolution
-        options.add_argument('--disable-gpu')
+        # Undetected ChromeDriver setup
+        options = uc.ChromeOptions()
+        
+        # Add necessary arguments
+        options.add_argument('--window-size=1920,1080')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-blink-features=AutomationControlled')  # Critical for CloudFlare
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option('useAutomationExtension', False)
-
-        # Randomized user agent (consider rotating between requests)
+        
+        # Use headless mode on GitHub Actions, but be aware it may reduce effectiveness
+        if 'CI' in os.environ:
+            options.add_argument('--headless=new')
+            
+        # User agent (optional with undetected-chromedriver)
         user_agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0"
         ]
         options.add_argument(f"user-agent={random.choice(user_agents)}")
-        self.driver = webdriver.Chrome(service=Service(), options=options)
+        
+        # Initialize the undetected-chromedriver
+        self.driver = uc.Chrome(options=options)
         self.driver.set_page_load_timeout(self.page_load_timeout)
 
-        # Apply selenium-stealth
-        stealth(
-            self.driver,
-            languages=["en-US", "en"],
-            vendor="Google Inc.",
-            platform="Win32",
-            webgl_vendor="Intel Inc.",
-            renderer="Intel Iris OpenGL Engine",
-            fix_hairline=True,
-            run_on_insecure_origins=True  # Allow on any site
-        )
-
-        # Additional anti-detection measures
-        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-            "source": """
-            Object.defineProperty(navigator, 'webdriver', {
-                get: () => undefined
-            });
-            
-            // Overwrite the plugins
-            Object.defineProperty(navigator, 'plugins', {
-                get: () => [1, 2, 3, 4, 5]
-            });
-            
-            // Overwrite the languages
-            Object.defineProperty(navigator, 'languages', {
-                get: () => ['en-US', 'en']
-            });
-            """
-        })
+        # No need for selenium-stealth with undetected-chromedriver
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
