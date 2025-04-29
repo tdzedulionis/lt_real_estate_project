@@ -37,12 +37,25 @@ class AruodasScraper:
         self.page_load_timeout = page_load_timeout
 
         # Selenium WebDriver setup
+            
+        # Selenium WebDriver setup
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
+        options.add_argument('--headless=new')  # Use newer headless mode
+        options.add_argument('--window-size=1920,1080')  # Standard resolution
         options.add_argument('--disable-gpu')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        options.add_argument('--disable-blink-features=AutomationControlled')  # Critical for CloudFlare
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+
+        # Randomized user agent (consider rotating between requests)
+        user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0"
+        ]
+        options.add_argument(f"user-agent={random.choice(user_agents)}")
         self.driver = webdriver.Chrome(service=Service(), options=options)
         self.driver.set_page_load_timeout(self.page_load_timeout)
 
@@ -55,7 +68,27 @@ class AruodasScraper:
             webgl_vendor="Intel Inc.",
             renderer="Intel Iris OpenGL Engine",
             fix_hairline=True,
+            run_on_insecure_origins=True  # Allow on any site
         )
+
+        # Additional anti-detection measures
+        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+            });
+            
+            // Overwrite the plugins
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [1, 2, 3, 4, 5]
+            });
+            
+            // Overwrite the languages
+            Object.defineProperty(navigator, 'languages', {
+                get: () => ['en-US', 'en']
+            });
+            """
+        })
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
