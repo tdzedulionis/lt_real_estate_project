@@ -15,6 +15,7 @@ import random
 import re
 from datetime import datetime
 import os
+import tempfile
 from ..config.settings import SCRAPER_CONFIG
 
 class AruodasScraper:
@@ -43,6 +44,7 @@ class AruodasScraper:
         options.add_argument('--disable-gpu')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
+        options.add_argument(f'--user-data-dir={tempfile.mkdtemp()}')
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         options.binary_location = '/snap/bin/chromium'
         self.driver = webdriver.Chrome(service=Service(), options=options)
