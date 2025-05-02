@@ -54,7 +54,7 @@ class AruodasScraper:
         options.add_argument(f"user-agent={random.choice(user_agents)}")
         
         # Initialize the undetected-chromedriver
-        self.driver = uc.Chrome(options=options)
+        self.driver = uc.Chrome(options=options, version_main=135)
         self.driver.set_page_load_timeout(self.page_load_timeout)
 
         # No need for selenium-stealth with undetected-chromedriver
