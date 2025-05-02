@@ -1,5 +1,5 @@
 """Web scraper for the Aruodas.lt real estate website using Selenium."""
-
+import os
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
