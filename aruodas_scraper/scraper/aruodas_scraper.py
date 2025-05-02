@@ -219,6 +219,23 @@ class AruodasScraper:
             self.logger.error(f"WebDriver error parsing {listing_link}: {e}")
             return {}
 
+    def _bypass_cloudflare(self, url, max_wait=60):
+        """Wait for CloudFlare challenge to complete"""
+        print(f"Waiting for CloudFlare challenge to complete...")
+        self.driver.get(url)
+        
+        start_time = time.time()
+        while time.time() - start_time < max_wait:
+            if "Just a moment" in self.driver.title:
+                print(f"Still waiting... ({int(time.time() - start_time)}s)")
+                time.sleep(5)
+            else:
+                print(f"Challenge passed! Page title: {self.driver.title}")
+                return True
+        
+        print("Failed to bypass CloudFlare challenge after timeout")
+        return False
+
     def scrape_data(self, max_pages="all"):
         """
         Scrape data from multiple pages.
@@ -235,6 +252,11 @@ class AruodasScraper:
         print("\nStarting scraping process...")
         url = self.base_url.format(page)
         self.driver.get(url)
+            # Try to bypass CloudFlare
+        if not self._bypass_cloudflare(url, max_wait=60):
+            print("Could not bypass CloudFlare protection. Exiting.")
+            return
+        
         self._accept_cookies()
 
         while max_pages == "all" or page <= max_pages:
