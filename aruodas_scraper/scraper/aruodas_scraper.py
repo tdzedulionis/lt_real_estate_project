@@ -36,6 +36,12 @@ class AruodasScraper:
 
         # Undetected ChromeDriver setup
         options = uc.ChromeOptions()
+
+        # Add proxy if available from environment
+        proxy = os.environ.get('HOME_PROXY')
+        if proxy:
+            print(f"Using proxy: {proxy.split('@')[1] if '@' in proxy else proxy}")  # Hide credentials
+            options.add_argument(f'--proxy-server={proxy}')
         
         # Add necessary arguments
         options.add_argument('--window-size=1920,1080')
@@ -57,7 +63,9 @@ class AruodasScraper:
         self.driver = uc.Chrome(options=options, version_main=135)
         self.driver.set_page_load_timeout(self.page_load_timeout)
 
-        # No need for selenium-stealth with undetected-chromedriver
+        # Now verify the proxy after driver is initialized
+        if proxy:
+            self._verify_proxy()
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -235,6 +243,18 @@ class AruodasScraper:
         
         print("Failed to bypass CloudFlare challenge after timeout")
         return False
+    
+    def _verify_proxy(self):
+        """Verify that proxy is working by checking IP"""
+        try:
+            self.driver.get("https://api.ipify.org")
+            time.sleep(3)
+            ip = self.driver.page_source
+            print(f"Current external IP: {ip}")
+            return True
+        except Exception as e:
+            print(f"Error verifying proxy: {e}")
+            return False
 
     def scrape_data(self, max_pages="all"):
         """

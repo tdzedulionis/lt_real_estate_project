@@ -87,6 +87,14 @@ jobs:
           sed -i "s/'category': '[^']*'/'category': 'butai'/" aruodas_scraper/config/settings.py
           
       - name: Run selling properties pipeline
+        env: 
+          DB_SERVER: ${{ secrets.DB_SERVER }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          BLOB_CONNECTION_STRING: ${{ secrets.BLOB_CONNECTION_STRING }}
+          BLOB_CONTAINER_NAME: ${{ secrets.BLOB_CONTAINER_NAME }}
+          HOME_PROXY: ${{ secrets.HOME_PROXY }}
         run: python main.py
 
   rental-properties:
@@ -156,4 +164,12 @@ jobs:
           sed -i "s/'category': '[^']*'/'category': 'butu-nuoma'/" aruodas_scraper/config/settings.py
           
       - name: Run rental properties pipeline
+        env: 
+          DB_SERVER: ${{ secrets.DB_SERVER }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          BLOB_CONNECTION_STRING: ${{ secrets.BLOB_CONNECTION_STRING }}
+          BLOB_CONTAINER_NAME: ${{ secrets.BLOB_CONTAINER_NAME }}
+          HOME_PROXY: ${{ secrets.HOME_PROXY }}
         run: python main.py
