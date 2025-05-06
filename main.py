@@ -22,45 +22,48 @@ def main():
     if max_pages != 'all':
         max_pages = int(max_pages)
     
+    # Database table
+    table_name = property_config['table_name']
+    
     try:
         print("\n=== Pipeline Start ===")
         print(f"Property Type: {'Rental' if SCRAPER_CONFIG['category'] == 'butu-nuoma' else 'Selling'}")
-        print(f"Mode: {'Full Pipeline' if PIPELINE_CONFIG['retrain_model'] else 'Scraping Only'}")
+        print(f"Mode: {'Full Pipeline' if PIPELINE_CONFIG['scrape_data'] else 'Retrain models only'}")
         
-        # 1. Data Collection
-        print("\n=== 1. Data Collection ===")
-        scraper = AruodasScraper(
-            category=SCRAPER_CONFIG['category'],
-            where=SCRAPER_CONFIG['location']
-        )
-        
-        print(f"Starting scraper for category '{SCRAPER_CONFIG['category']}' in location '{SCRAPER_CONFIG['location']}'")
-        print(f"Will scrape {SCRAPER_CONFIG['max_pages']} pages")
-        
-        scraper.scrape_data(max_pages=max_pages)
-        scraped_data = scraper.get_data()
-        scraper.close()
-        
-        if not scraped_data:
-            print("No data was scraped. Exiting.")
-            return
-        
-        # 2. Data Processing and Storage
-        print("\n=== 2. Data Storage ===")
-        df = pd.DataFrame(scraped_data)
-        print(f"Successfully collected {len(df)} listings!")
-        
-        print("Preparing scraped data for database...")
-        df = prepare_dataframe(df)
-        
-        # Create table if it doesn't exist
-        table_name = property_config['table_name']
-        print(f"Creating/checking table '{table_name}'...")
-        create_table(df, table_name)
-        
-        print("Inserting new records into database...")
-        add_new_rows(df, table_name)
-        print("\nScraping and data storage completed successfully!")
+        if PIPELINE_CONFIG['scrape_data']:
+            # 1. Data Scraping (if enabled)
+            print("\n=== 1. Data Collection ===")
+            scraper = AruodasScraper(
+                category=SCRAPER_CONFIG['category'],
+                where=SCRAPER_CONFIG['location']
+            )
+            
+            print(f"Starting scraper for category '{SCRAPER_CONFIG['category']}' in location '{SCRAPER_CONFIG['location']}'")
+            print(f"Will scrape {SCRAPER_CONFIG['max_pages']} pages")
+            
+            scraper.scrape_data(max_pages=max_pages)
+            scraped_data = scraper.get_data()
+            scraper.close()
+            
+            if not scraped_data:
+                print("No data was scraped. Exiting.")
+                return
+            
+            # 2. Data Processing and Storage
+            print("\n=== 2. Data Storage ===")
+            df = pd.DataFrame(scraped_data)
+            print(f"Successfully collected {len(df)} listings!")
+            
+            print("Preparing scraped data for database...")
+            df = prepare_dataframe(df)
+            
+            # Create table if it doesn't exist
+            print(f"Creating/checking table '{table_name}'...")
+            create_table(df, table_name)
+            
+            print("Inserting new records into database...")
+            add_new_rows(df, table_name)
+            print("\nScraping and data storage completed successfully!")
         
         # 3. Model Training (if enabled)
         if PIPELINE_CONFIG['retrain_model']:

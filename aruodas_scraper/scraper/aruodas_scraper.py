@@ -1,11 +1,13 @@
 """Web scraper for the Aruodas.lt real estate website using Selenium."""
 import os
-import undetected_chromedriver as uc
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
 from urllib.parse import unquote
+from selenium_stealth import stealth
 import pandas as pd
 import logging
 import time
@@ -28,46 +30,41 @@ class AruodasScraper:
             where (str): Location filter (e.g., 'vilniuje' for Vilnius)
             page_load_timeout (int): Page load timeout in seconds
         """
+        
         self.category = category
         self.where = where
         self.base_url = f"{SCRAPER_CONFIG['base_url']}/{self.category}/{where}/puslapis/{{}}/?FOrder=AddDate"
         self.data_list = []
         self.page_load_timeout = page_load_timeout
 
-        # Undetected ChromeDriver setup
-        options = uc.ChromeOptions()
-
+        # Selenium WebDriver setup
+        options = webdriver.ChromeOptions()
         # Add proxy if available from environment
         proxy = os.environ.get('HOME_PROXY')
         if proxy:
             print(f"Using proxy: {proxy.split('@')[1] if '@' in proxy else proxy}")  # Hide credentials
             options.add_argument(f'--proxy-server={proxy}')
-        
-        # Add necessary arguments
-        options.add_argument('--window-size=1920,1080')
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-        
-        # Use headless mode on GitHub Actions, but be aware it may reduce effectiveness
-        if 'CI' in os.environ:
-            options.add_argument('--headless=new')
-            
-        # User agent (optional with undetected-chromedriver)
-        user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
-        ]
-        options.add_argument(f"user-agent={random.choice(user_agents)}")
-        
-        # Initialize the undetected-chromedriver
-        self.driver = uc.Chrome(options=options, version_main=135)
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        self.driver = webdriver.Chrome(service=Service(), options=options)
         self.driver.set_page_load_timeout(self.page_load_timeout)
-
-        # Now verify the proxy after driver is initialized
-        if proxy:
-            self._verify_proxy()
-
+        
+        # Apply selenium-stealth
+        stealth(
+            self.driver,
+            languages=["en-US", "en"],
+            vendor="Google Inc.",
+            platform="Win32",
+            webgl_vendor="Intel Inc.",
+            renderer="Intel Iris OpenGL Engine",
+            fix_hairline=True,
+        )
+        
         self.logger = logging.getLogger(self.__class__.__name__)
+        
 
     def _accept_cookies(self):
         """Accept cookies on the website."""
@@ -243,18 +240,6 @@ class AruodasScraper:
         
         print("Failed to bypass CloudFlare challenge after timeout")
         return False
-    
-    def _verify_proxy(self):
-        """Verify that proxy is working by checking IP"""
-        try:
-            self.driver.get("https://api.ipify.org")
-            time.sleep(3)
-            ip = self.driver.page_source
-            print(f"Current external IP: {ip}")
-            return True
-        except Exception as e:
-            print(f"Error verifying proxy: {e}")
-            return False
 
     def scrape_data(self, max_pages="all"):
         """
@@ -289,14 +274,6 @@ class AruodasScraper:
                 time.sleep(5)  # Increase wait time
                 print("Page title:", self.driver.title)
                 print("Page source length:", len(self.driver.page_source))
-                
-                # Take screenshot for debugging
-                self.driver.save_screenshot('/tmp/screenshot.png')
-                print("Saved screenshot to /tmp/screenshot.png")
-                
-                # Check page content
-                if "captcha" in self.driver.page_source.lower():
-                    print("CAPTCHA detected!")
                 
                 time.sleep(2)  # Ensure page loads
                 

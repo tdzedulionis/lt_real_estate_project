@@ -23,7 +23,7 @@ CONN_STR = (
 
 def get_db_connection():
     """Connect to Azure SQL database with retry logic, returns Connection object or None."""
-    max_attempts = 4
+    max_attempts = 8
     attempt = 0
     
     while attempt < max_attempts:
