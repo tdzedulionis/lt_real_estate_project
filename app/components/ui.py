@@ -104,7 +104,8 @@ def display_footer():
     st.markdown(
         """<div style='text-align: center; color: #888;'>
         Powered by machine learning models trained on real estate data from Aruodas.lt<br>
-        © 2023 Real Estate Price Predictor
+        © 2025 Real Estate Price Predictor
+        © Trained by Tomas Dzedulionis
         </div>""", 
         unsafe_allow_html=True
     )
