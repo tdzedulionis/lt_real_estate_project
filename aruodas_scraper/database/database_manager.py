@@ -1,6 +1,7 @@
 """Database manager for handling SQL database operations with real estate data."""
 
 import sys
+import os
 import pyodbc
 import pandas as pd
 import math
@@ -9,17 +10,28 @@ import unidecode
 from datetime import datetime
 from ..config.settings import DATABASE_CONFIG
 
-# Database connection string
-CONN_STR = (
-    "Driver={ODBC Driver 18 for SQL Server};"
-    f"Server={DATABASE_CONFIG['server']};"
-    f"Database={DATABASE_CONFIG['database']};"
-    f"Uid={DATABASE_CONFIG['username']};"
-    f"Pwd={DATABASE_CONFIG['password']};"
-    "Encrypt=yes;"
-    "TrustServerCertificate=no;"
-    "Connection Timeout=30;"
-)
+def get_connection_string():
+    """Get the appropriate connection string based on the environment."""
+    base_conn_str = (
+        "Driver={ODBC Driver 18 for SQL Server};"
+        f"Server={DATABASE_CONFIG['server']};"
+        f"Database={DATABASE_CONFIG['database']};"
+        f"Uid={DATABASE_CONFIG['username']};"
+        f"Pwd={DATABASE_CONFIG['password']};"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+        "Connection Timeout=30;"
+    )
+    
+    # Check if running on Unix-like system (including Streamlit Cloud)
+    if os.name != 'nt':  # not Windows
+        if os.path.exists('/opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.1.so.1.1'):
+            base_conn_str += "Driver=/opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.1.so.1.1;"
+    
+    return base_conn_str
+
+# Get the environment-aware connection string
+CONN_STR = get_connection_string()
 
 def get_db_connection():
     """Connect to Azure SQL database with retry logic, returns Connection object or None."""
