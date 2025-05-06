@@ -2,7 +2,7 @@ name: ML Pipeline
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+    - cron: '0 0 * * 1'  # Runs monday at midnight UTC
   workflow_dispatch:      # Allows manual triggering
     inputs:
       max_pages:
