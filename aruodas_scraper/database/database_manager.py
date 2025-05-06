@@ -12,8 +12,11 @@ from ..config.settings import DATABASE_CONFIG
 
 def get_connection_string():
     """Get the appropriate connection string based on the environment."""
-    base_conn_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
+    # Use Driver 17 for Linux, Driver 18 for Windows
+    driver = "ODBC Driver 17 for SQL Server" if os.name != 'nt' else "ODBC Driver 18 for SQL Server"
+    
+    return (
+        f"Driver={{{driver}}};"
         f"Server={DATABASE_CONFIG['server']};"
         f"Database={DATABASE_CONFIG['database']};"
         f"Uid={DATABASE_CONFIG['username']};"
@@ -22,13 +25,6 @@ def get_connection_string():
         "TrustServerCertificate=no;"
         "Connection Timeout=30;"
     )
-    
-    # Check if running on Unix-like system (including Streamlit Cloud)
-    if os.name != 'nt':  # not Windows
-        if os.path.exists('/opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.1.so.1.1'):
-            base_conn_str += "Driver=/opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.1.so.1.1;"
-    
-    return base_conn_str
 
 # Get the environment-aware connection string
 CONN_STR = get_connection_string()
