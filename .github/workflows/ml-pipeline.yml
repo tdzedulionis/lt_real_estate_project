@@ -81,45 +81,45 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-          - name: Install SQL Server ODBC Driver and Tools
-          run: |
-            echo 'Installing Microsoft SQL Server ODBC Driver'
-            # Remove possible duplicate sources list
-            sudo rm -f /etc/apt/sources.list.d/mssql-release.list
+      - name: Install SQL Server ODBC Driver and Tools
+        run: |
+          echo 'Installing Microsoft SQL Server ODBC Driver'
+          # Remove possible duplicate sources list
+          sudo rm -f /etc/apt/sources.list.d/mssql-release.list
             
-            # Setup Microsoft repository with current methods
-            sudo apt-get update
-            sudo apt-get install -y curl gnupg
+          # Setup Microsoft repository with current methods
+          sudo apt-get update
+          sudo apt-get install -y curl gnupg
             
-            # Import Microsoft GPG key using recommended approach
-            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
+          # Import Microsoft GPG key using recommended approach
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
             
-            # Add repository - using the Microsoft SQL format without 'ubuntu' component
-            UBUNTU_VERSION=$(lsb_release -rs)
-            echo "Ubuntu version: $UBUNTU_VERSION"
+          # Add repository - using the Microsoft SQL format without 'ubuntu' component
+          UBUNTU_VERSION=$(lsb_release -rs)
+          echo "Ubuntu version: $UBUNTU_VERSION"
             
-            # For newer Ubuntu versions, use a known working version (22.04)
-            if [[ "$UBUNTU_VERSION" == "24.04" ]]; then
-              echo "Using Ubuntu 22.04 repo for compatibility with 24.04"
-              UBUNTU_VERSION="22.04"
-            fi
+          # For newer Ubuntu versions, use a known working version (22.04)
+          if [[ "$UBUNTU_VERSION" == "24.04" ]]; then
+            echo "Using Ubuntu 22.04 repo for compatibility with 24.04"
+            UBUNTU_VERSION="22.04"
+          fi
             
-            sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$UBUNTU_VERSION/prod/ focal main' > /etc/apt/sources.list.d/mssql-release.list"
+          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$UBUNTU_VERSION/prod/ focal main' > /etc/apt/sources.list.d/mssql-release.list"
             
-            sudo apt-get update
+          sudo apt-get update
             
-            # Try to install the driver with better error reporting
-            echo 'Installing ODBC Driver'
-            if sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18; then
-              echo "Successfully installed msodbcsql18"
-            elif sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17; then
-              echo "Successfully installed msodbcsql17"
-            else
-              echo "Failed to install SQL Server ODBC drivers"
-              echo "Available packages in Microsoft repo:"
-              apt-cache search msodbcsql
-              exit 1
-            fi
+          # Try to install the driver with better error reporting
+          echo 'Installing ODBC Driver'
+          if sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18; then
+            echo "Successfully installed msodbcsql18"
+          elif sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17; then
+            echo "Successfully installed msodbcsql17"
+          else
+            echo "Failed to install SQL Server ODBC drivers"
+            echo "Available packages in Microsoft repo:"
+            apt-cache search msodbcsql
+            exit 1
+          fi
 
       - name: Update scraper config
         run: |
