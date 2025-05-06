@@ -2,6 +2,36 @@
 
 A comprehensive real estate analytics platform that combines web scraping, machine learning, and data visualization to provide insights into the Lithuanian real estate market through Aruodas.lt data.
 
+## Architecture & Data Flow
+
+```
+Data Collection & Storage
+🏠 Home Network
+  └── 🤖 Scraper
+      └── 📊 Aruodas.lt Data
+          └── 💾 Azure SQL Database
+
+Model Training Pipeline (Weekly)
+⏰ Monday Midnight (GitHub Actions)
+  ├── 📥 Pull Data from Azure SQL
+  ├── 🧮 Train Models
+  └── 📤 Save to Azure Blob Storage
+
+Services
+📡 Azure App Service
+  └── ⚡ FastAPI
+      ├── 📥 Load Models from Blob
+      └── 🎯 Serve Predictions
+
+📱 Streamlit App
+  ├── 📊 Market Analysis
+  ├── 💰 Price Predictions
+  └── 🗺️ Property Comparison
+
+Data Flow: 
+Aruodas.lt 🔄 Scraper ➡️ SQL DB ➡️ Training ➡️ Blob Storage ⬅️ API ⬅️ Streamlit
+```
+
 ## Project Components
 
 ```
@@ -27,7 +57,7 @@ project/
 
 - **Data Collection**: Automated scraping of real estate listings from Aruodas.lt
 - **Machine Learning**: Price prediction models for both rental and sales properties
-- **Automated Pipeline**: Daily data collection and model retraining via GitHub Actions
+- **Automated Pipeline**: Weekly data collection and model retraining via GitHub Actions
 - **Azure Integration**: Seamless integration with Azure SQL Database and Blob Storage
 - **Market Analysis**: Tools for analyzing real estate market trends
 
@@ -59,6 +89,7 @@ DB_SERVER=your_server_name
 DB_NAME=your_database_name
 DB_USER=your_username
 DB_PASSWORD=your_password
+HOME_PROXY=your_proxy_server  # Optional: Proxy server for scraping
 
 # Azure Blob Storage
 BLOB_CONNECTION_STRING=your_connection_string
@@ -98,7 +129,7 @@ The script will:
 ### GitHub Actions Pipeline
 
 The project includes an automated CI/CD pipeline that:
-1. Runs daily at midnight UTC to collect new data
+1. Runs weekly on Monday at midnight UTC to collect new data
 2. Executes in sequence:
    - Scrapes selling properties
    - Trains and updates selling models
@@ -113,6 +144,7 @@ To configure the pipeline:
    - `DB_NAME`
    - `DB_USER`
    - `DB_PASSWORD`
+   - `HOME_PROXY` (optional)
    - `BLOB_CONNECTION_STRING`
    - `BLOB_CONTAINER_NAME`
    - `SCHEDULED_MAX_PAGES` (number of pages to scrape in scheduled runs)

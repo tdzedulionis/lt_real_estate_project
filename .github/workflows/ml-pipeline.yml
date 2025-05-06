@@ -18,7 +18,7 @@ env:
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
   BLOB_CONNECTION_STRING: ${{ secrets.BLOB_CONNECTION_STRING }}
   BLOB_CONTAINER_NAME: ${{ secrets.BLOB_CONTAINER_NAME }}
-  MAX_PAGES: ${{ github.event.inputs.max_pages || secrets.SCHEDULED_MAX_PAGES }}
+  MAX_PAGES: ${{ github.event.inputs.max_pages}}
 
 jobs:
   selling-properties:
