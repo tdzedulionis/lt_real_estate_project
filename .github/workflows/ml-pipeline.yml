@@ -91,11 +91,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y curl gnupg
             
-          # Import Microsoft GPG key using recommended approach
-          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
+          # Clean up any existing Microsoft repository configurations
+          sudo rm -f /usr/share/keyrings/microsoft-prod.gpg
+          sudo rm -f /usr/share/keyrings/microsoft-archive-keyring.gpg
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
+            
+          # Import Microsoft GPG key using a consistent filename
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
             
           # Add Microsoft repository for SQL tools
-          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main' > /etc/apt/sources.list.d/mssql-release.list"
+          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main' > /etc/apt/sources.list.d/mssql-release.list"
             
           sudo apt-get update
             
@@ -149,11 +154,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y curl gnupg
           
-          # Import Microsoft GPG key using recommended approach
-          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
+          # Clean up any existing Microsoft repository configurations
+          sudo rm -f /usr/share/keyrings/microsoft-prod.gpg
+          sudo rm -f /usr/share/keyrings/microsoft-archive-keyring.gpg
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
+          
+          # Import Microsoft GPG key using a consistent filename
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
           
           # Add Microsoft repository for SQL tools
-          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main' > /etc/apt/sources.list.d/mssql-release.list"
+          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main' > /etc/apt/sources.list.d/mssql-release.list"
           
           sudo apt-get update
           
