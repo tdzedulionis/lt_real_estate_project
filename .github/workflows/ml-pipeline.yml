@@ -83,20 +83,54 @@ jobs:
 
       - name: Install SQL Server ODBC Driver and Tools
         run: |
-            echo 'Installing Keys'
-            sudo sh -c 'curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -'
-            sudo sh -c 'curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list > /etc/apt/sources.list.d/mssql-release.list'
-            echo 'Updating'
-            sudo apt-get update
-            echo 'Installing msodbc17'
-            sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17
-            echo 'Installing mssql-tools17'
-            sudo ACCEPT_EULA=Y apt-get install -y mssql-tools17
-            echo 'Updating Path'
-            echo 'export PATH="$PATH:/opt/mssql-tools17/bin"' >> ~/.bashrc
-            source ~/.bashrc
-            echo 'Installing unixodbc-dev'
-            sudo apt-get install -y unixodbc-dev
+          echo 'Installing Microsoft SQL Server ODBC Driver'
+          # Remove possible duplicate sources list
+          sudo rm -f /etc/apt/sources.list.d/mssql-release.list
+          
+          # Setup Microsoft repository with current methods
+          sudo apt-get update
+          sudo apt-get install -y curl gnupg
+          
+          # Import Microsoft GPG key using recommended approach
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
+          
+          # Add repository using signed-by method (more secure and modern)
+          UBUNTU_VERSION=$(lsb_release -rs)
+          echo "Ubuntu version: $UBUNTU_VERSION"
+          
+          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$UBUNTU_VERSION/prod/ ubuntu main' > /etc/apt/sources.list.d/mssql-release.list"
+          
+          sudo apt-get update
+          
+          # Try to install the driver with better error reporting
+          echo 'Installing ODBC Driver'
+          if sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18; then
+            echo "Successfully installed msodbcsql18"
+          elif sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17; then
+            echo "Successfully installed msodbcsql17"
+          else
+            echo "Failed to install SQL Server ODBC drivers"
+            echo "Available packages in Microsoft repo:"
+            apt-cache search msodbcsql
+            exit 1
+          fi
+          
+          # Install additional tools
+          echo 'Installing SQL Server tools'
+          sudo ACCEPT_EULA=Y apt-get install -y mssql-tools
+          
+          # Update path
+          echo 'Updating PATH'
+          echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+          source ~/.bashrc
+          
+          # Install ODBC development headers
+          echo 'Installing unixodbc-dev'
+          sudo apt-get install -y unixodbc-dev
+          
+          # Verify installation
+          echo "Installed ODBC drivers:"
+          odbcinst -q -d
 
       - name: Update scraper config
         run: |
@@ -124,6 +158,57 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+
+          - name: Install SQL Server ODBC Driver and Tools
+          run: |
+            echo 'Installing Microsoft SQL Server ODBC Driver'
+            # Remove possible duplicate sources list
+            sudo rm -f /etc/apt/sources.list.d/mssql-release.list
+            
+            # Setup Microsoft repository with current methods
+            sudo apt-get update
+            sudo apt-get install -y curl gnupg
+            
+            # Import Microsoft GPG key using recommended approach
+            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
+            
+            # Add repository using signed-by method (more secure and modern)
+            UBUNTU_VERSION=$(lsb_release -rs)
+            echo "Ubuntu version: $UBUNTU_VERSION"
+            
+            sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$UBUNTU_VERSION/prod/ ubuntu main' > /etc/apt/sources.list.d/mssql-release.list"
+            
+            sudo apt-get update
+            
+            # Try to install the driver with better error reporting
+            echo 'Installing ODBC Driver'
+            if sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18; then
+              echo "Successfully installed msodbcsql18"
+            elif sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17; then
+              echo "Successfully installed msodbcsql17"
+            else
+              echo "Failed to install SQL Server ODBC drivers"
+              echo "Available packages in Microsoft repo:"
+              apt-cache search msodbcsql
+              exit 1
+            fi
+            
+            # Install additional tools
+            echo 'Installing SQL Server tools'
+            sudo ACCEPT_EULA=Y apt-get install -y mssql-tools
+            
+            # Update path
+            echo 'Updating PATH'
+            echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+            source ~/.bashrc
+            
+            # Install ODBC development headers
+            echo 'Installing unixodbc-dev'
+            sudo apt-get install -y unixodbc-dev
+            
+            # Verify installation
+            echo "Installed ODBC drivers:"
+            odbcinst -q -d
           
       - name: Install Chrome and ChromeDriver
         run: |
