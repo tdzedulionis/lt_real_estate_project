@@ -2,6 +2,18 @@
 
 A comprehensive real estate analytics platform that combines web scraping, machine learning, and data visualization to provide insights into the Lithuanian real estate market through Aruodas.lt data.
 
+## Live Demo
+
+🔗 [Try the App](https://real-estate-lt.streamlit.app/) - Explore Lithuanian real estate market analysis and price predictions
+
+## Features
+
+- **Data Collection**: Automated scraping of real estate listings from Aruodas.lt
+- **Machine Learning**: Price prediction models for both rental and sales properties
+- **Market Analysis**: Interactive tools for analyzing real estate market trends
+- **Automated Pipeline**: Weekly data collection and model retraining via GitHub Actions
+- **Azure Integration**: Seamless integration with Azure SQL Database and Blob Storage
+
 ## Architecture & Data Flow
 
 ```
@@ -32,34 +44,28 @@ Data Flow:
 Aruodas.lt 🔄 Scraper ➡️ SQL DB ➡️ Training ➡️ Blob Storage ⬅️ API ⬅️ Streamlit
 ```
 
-## Project Components
+## Project Structure
 
 ```
 project/
 ├── api/                      # FastAPI service for predictions
-│   ├── main.py              # API endpoints
+│   ├── main.py              # API endpoints and model serving
 │   └── requirements.txt      # API-specific dependencies
 ├── app/                      # Streamlit web application
 │   ├── streamlit_app.py     # Main app file
 │   └── components/          # UI and functionality components
 ├── aruodas_scraper/         # Core package
-│   ├── config/             # Configuration settings
-│   ├── scraper/            # Web scraping logic
-│   ├── database/           # Database operations
-│   ├── preprocessing/      # Data preprocessing
-│   └── training/          # Model training and analysis
-├── model_output/           # Trained ML models
-│   ├── rental/            # Rental price models
-│   └── selling/           # Sales price models
+│   ├── config/             # Configuration and settings
+│   │   ├── settings.py    # Main configuration file
+│   │   └── utils.py       # Utility functions
+│   ├── scraper/           # Web scraping using Selenium
+│   ├── database/          # Azure SQL Database operations
+│   ├── preprocessing/     # Data cleaning and feature engineering
+│   └── training/         # Model training and evaluation
+├── model_output/          # Trained ML models and artifacts
+│   ├── rental/           # Rental price models
+│   └── selling/          # Sales price models
 ```
-
-## Features
-
-- **Data Collection**: Automated scraping of real estate listings from Aruodas.lt
-- **Machine Learning**: Price prediction models for both rental and sales properties
-- **Automated Pipeline**: Weekly data collection and model retraining via GitHub Actions
-- **Azure Integration**: Seamless integration with Azure SQL Database and Blob Storage
-- **Market Analysis**: Tools for analyzing real estate market trends
 
 ## Prerequisites
 
@@ -69,99 +75,75 @@ project/
 - Azure SQL Database
 - Azure Blob Storage
 
-## Configuration
+## Getting Started
 
-1. Clone the repository:
+### Quick Start
+1. 🚀 [Try the live app](https://real-estate-lt.streamlit.app/)
+2. 📖 Check the [Configuration](#configuration) section for local setup
+3. 🛠️ Follow the [Usage](#usage) guide to run the pipeline
+
+### Configuration
+
+1. Clone and setup:
 ```bash
 git clone https://github.com/tdzedulionis/lt_real_estate_project
 cd aruodas_scraper
+cp .env.example .env
+cp app/.env.example app/.env
 ```
 
-2. Copy environment configuration files:
-```bash
-cp .env.example .env        # Core configuration
-cp app/.env.example app/.env  # Streamlit app configuration
-```
-
-Required environment variables:
+2. Configure environment variables:
 
 Main configuration (.env):
 ```
-# Database Configuration
 DB_SERVER=your_server_name
 DB_NAME=your_database_name
 DB_USER=your_username
 DB_PASSWORD=your_password
-HOME_PROXY=your_proxy_server  # Optional: Proxy server for scraping
-
-# Azure Blob Storage
+HOME_PROXY=your_proxy_server  # Optional
 BLOB_CONNECTION_STRING=your_connection_string
 BLOB_CONTAINER_NAME=your_container_name
 ```
 
 Streamlit app configuration (app/.env):
 ```
-# API Configuration
 API_URL=https://your-fastapi-service.azurewebsites.net/
-
-# Cache Configuration
-CACHE_TTL_PREDICTIONS=60  # Cache time in seconds for predictions
-CACHE_TTL_MODELS=600     # Cache time in seconds for model info
-
-# API Timeouts (in seconds)
+CACHE_TTL_PREDICTIONS=60
+CACHE_TTL_MODELS=600
 PREDICTION_TIMEOUT=60
 MODEL_INFO_TIMEOUT=30
-
-# Retry Configuration
 MAX_RETRIES=5
 MIN_RETRY_WAIT=4
 MAX_RETRY_WAIT=30
 ```
 
-3. Configure scraping parameters in `aruodas_scraper/config/settings.py`:
-```python
-SCRAPER_CONFIG = {
-    'max_pages': '1',  # number of pages or 'all'
-    'category': 'butai',  # 'butai' for selling, 'butu-nuoma' for rental
-    'location': '',  # city name or empty for all
-    'wait_time': 2  # seconds between requests
-}
-```
-
 ## Usage
 
-### Local Execution
+### Local Development
 
 1. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Run the scraper and training pipeline:
+2. Run the pipeline:
 ```bash
 python main.py
 ```
 
-The script will:
-- Scrape property listings from Aruodas.lt
-- Store data in Azure SQL Database
-- Train machine learning models
-- Upload models to Azure Blob Storage
+This will scrape data, train models, and upload them to Azure Blob Storage.
 
 ### GitHub Actions Pipeline
 
-The project includes an automated CI/CD pipeline that:
-1. Runs weekly on Monday at midnight UTC to collect new data
-2. Executes in sequence:
-   - Scrapes selling properties
-   - Trains and updates selling models
-   - Scrapes rental properties
-   - Trains and updates rental models
-3. Uploads all updated models to Azure Blob Storage
+The automated weekly pipeline:
+1. Runs Monday at midnight UTC
+2. Scrapes property data
+3. Trains and updates models
+4. Uploads to Azure Blob Storage
 
-To configure the pipeline:
+To configure:
 1. Fork this repository
-2. Add the following secrets to your GitHub repository settings:
+2. Add repository secrets:
    - `DB_SERVER`
    - `DB_NAME`
    - `DB_USER`
@@ -169,41 +151,7 @@ To configure the pipeline:
    - `HOME_PROXY` (optional)
    - `BLOB_CONNECTION_STRING`
    - `BLOB_CONTAINER_NAME`
-   - `SCHEDULED_MAX_PAGES` (number of pages to scrape in scheduled runs)
-
-3. Manual pipeline execution:
-   - Go to Actions tab in GitHub
-   - Select "ML Pipeline"
-   - Click "Run workflow"
-   - Enter the number of pages to scrape (or 'all')
-
-## Project Structure Details
-
-### Core Package (aruodas_scraper/)
-- `config/`: Global configuration and settings
-  - `settings.py`: Main configuration file
-  - `utils.py`: Utility functions
-- `scraper/`: Web scraping implementation using Selenium
-- `database/`: Azure SQL Database operations
-- `preprocessing/`: Data cleaning and feature engineering
-- `training/`: Model training and evaluation
-
-### API Service (api/)
-- FastAPI implementation for real-time predictions
-- Model loading and management
-- Azure Blob Storage integration
-
-### Web Application (app/)
-- Streamlit dashboard
-- Market analysis visualizations
-- Interactive price predictions
-- Property comparison tools
-
-### Model Output (model_output/)
-- Trained model files
-- Performance metrics
-- Feature importance analysis
-- Model artifacts
+   - `SCHEDULED_MAX_PAGES`
 
 ## Contributing
 
