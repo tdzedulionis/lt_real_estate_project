@@ -104,7 +104,7 @@ jobs:
             UBUNTU_VERSION="22.04"
           fi
             
-          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$UBUNTU_VERSION/prod/ focal main' > /etc/apt/sources.list.d/mssql-release.list"
+          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$UBUNTU_VERSION/prod/ main' > /etc/apt/sources.list.d/mssql-release.list"
             
           sudo apt-get update
             
@@ -171,7 +171,7 @@ jobs:
             UBUNTU_VERSION="22.04"
           fi
           
-          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$UBUNTU_VERSION/prod/ focal main' > /etc/apt/sources.list.d/mssql-release.list"
+          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$UBUNTU_VERSION/prod/ main' > /etc/apt/sources.list.d/mssql-release.list"
           
           sudo apt-get update
           
