@@ -101,7 +101,7 @@ with st.sidebar:
         # Get display names in a list
         display_names = list(model_options.keys())
         # Find the index of 'Ensemble' in display names (case-insensitive)
-        default_model = next((i for i, name in enumerate(display_names) if name.lower() == 'ensemble'), 0)
+        default_model = next((i for i, name in enumerate(display_names) if 'ensemble' in name.lower()), 0)
         
         # Show the user-friendly names in the dropdown
         selected_display_name = st.selectbox(
