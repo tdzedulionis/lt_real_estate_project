@@ -1,0 +1,8 @@
+streamlit>=1.32.0
+requests>=2.31.0
+python-dotenv>=1.0.1
+tenacity>=8.2.0
+pandas>=2.2.3
+
+# Only include packages directly required by the Streamlit app
+# Other dependencies like ML libraries are in the main requirements.txt

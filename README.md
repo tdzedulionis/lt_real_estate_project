@@ -77,12 +77,15 @@ git clone https://github.com/tdzedulionis/lt_real_estate_project
 cd aruodas_scraper
 ```
 
-2. Copy .env.example to .env and configure:
+2. Copy environment configuration files:
 ```bash
-cp .env.example .env
+cp .env.example .env        # Core configuration
+cp app/.env.example app/.env  # Streamlit app configuration
 ```
 
 Required environment variables:
+
+Main configuration (.env):
 ```
 # Database Configuration
 DB_SERVER=your_server_name
@@ -94,6 +97,25 @@ HOME_PROXY=your_proxy_server  # Optional: Proxy server for scraping
 # Azure Blob Storage
 BLOB_CONNECTION_STRING=your_connection_string
 BLOB_CONTAINER_NAME=your_container_name
+```
+
+Streamlit app configuration (app/.env):
+```
+# API Configuration
+API_URL=https://your-fastapi-service.azurewebsites.net/
+
+# Cache Configuration
+CACHE_TTL_PREDICTIONS=60  # Cache time in seconds for predictions
+CACHE_TTL_MODELS=600     # Cache time in seconds for model info
+
+# API Timeouts (in seconds)
+PREDICTION_TIMEOUT=60
+MODEL_INFO_TIMEOUT=30
+
+# Retry Configuration
+MAX_RETRIES=5
+MIN_RETRY_WAIT=4
+MAX_RETRY_WAIT=30
 ```
 
 3. Configure scraping parameters in `aruodas_scraper/config/settings.py`:

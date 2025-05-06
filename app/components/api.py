@@ -1,15 +1,27 @@
+import os
 import streamlit as st
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configuration
-API_URL = "https://real-estate-fast-api-dxafaefkg3hefpfs.polandcentral-01.azurewebsites.net/"  # Update this if your API is hosted elsewhere
+API_URL = os.getenv('API_URL', 'https://real-estate-fast-api-dxafaefkg3hefpfs.polandcentral-01.azurewebsites.net/')
+PREDICTION_TIMEOUT = int(os.getenv('PREDICTION_TIMEOUT', '60'))
+MODEL_INFO_TIMEOUT = int(os.getenv('MODEL_INFO_TIMEOUT', '30'))
+CACHE_TTL_PREDICTIONS = int(os.getenv('CACHE_TTL_PREDICTIONS', '60'))
+CACHE_TTL_MODELS = int(os.getenv('CACHE_TTL_MODELS', '600'))
+MAX_RETRIES = int(os.getenv('MAX_RETRIES', '5'))
+MIN_RETRY_WAIT = int(os.getenv('MIN_RETRY_WAIT', '4'))
+MAX_RETRY_WAIT = int(os.getenv('MAX_RETRY_WAIT', '30'))
 
 @retry(
-    stop=stop_after_attempt(5),  # Increase retry attempts
-    wait=wait_exponential(multiplier=2, min=4, max=30)  # Increase wait times
+    stop=stop_after_attempt(MAX_RETRIES),
+    wait=wait_exponential(multiplier=2, min=MIN_RETRY_WAIT, max=MAX_RETRY_WAIT)
 )
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=CACHE_TTL_PREDICTIONS)
 def predict_price(property_data, model_type, model_name=None):
     """Request price prediction from API with retry logic and error handling."""
     try:
@@ -28,7 +40,7 @@ def predict_price(property_data, model_type, model_name=None):
             endpoint,
             json=property_data,
             headers=headers,
-            timeout=60  # Increase timeout to 60 seconds for ensemble models
+            timeout=PREDICTION_TIMEOUT
         )
         
         if response.status_code == 200:
@@ -58,10 +70,10 @@ def predict_price(property_data, model_type, model_name=None):
         return None
 
 @retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=4, max=10)
+    stop=stop_after_attempt(MAX_RETRIES),
+    wait=wait_exponential(multiplier=1, min=MIN_RETRY_WAIT, max=MAX_RETRY_WAIT)
 )
-@st.cache_data(ttl=600)  # Cache for 10 minutes
+@st.cache_data(ttl=CACHE_TTL_MODELS)
 def get_available_models():
     """Fetch list of available rental and selling models from API with caching."""
     try:
@@ -71,7 +83,7 @@ def get_available_models():
         response = requests.get(
             f"{API_URL}/models",
             headers=headers,
-            timeout=30
+            timeout=MODEL_INFO_TIMEOUT
         )
         if response.status_code == 200:
             return response.json()
@@ -90,10 +102,10 @@ def get_available_models():
         return {"rental_models": [], "selling_models": []}
 
 @retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=4, max=10)
+    stop=stop_after_attempt(MAX_RETRIES),
+    wait=wait_exponential(multiplier=1, min=MIN_RETRY_WAIT, max=MAX_RETRY_WAIT)
 )
-@st.cache_data(ttl=600)  # Cache for 10 minutes
+@st.cache_data(ttl=CACHE_TTL_MODELS)
 def get_model_requirements(model_type):
     """Fetch required features and metrics for specified model type."""
     try:
@@ -103,7 +115,7 @@ def get_model_requirements(model_type):
         response = requests.get(
             f"{API_URL}/model-requirements/{model_type}",
             headers=headers,
-            timeout=30
+            timeout=MODEL_INFO_TIMEOUT
         )
         if response.status_code == 200:
             return response.json()
