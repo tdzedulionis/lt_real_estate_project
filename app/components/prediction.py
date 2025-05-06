@@ -9,7 +9,7 @@ def basic_info_inputs():
     with col1:
         city = st.selectbox(
             "City",
-            names = [
+            options = [
             "Akmenės m.",
             "Akmenės r. sav.",
             "Alytaus r. sav.",
