@@ -172,8 +172,8 @@ if predict_button:
     # Call predict_price API
     with st.spinner(f"Predicting {model_type} price..."):
         # Clear st.cache_data for predict_price to ensure fresh results
-        predict_price.clear()
-        
+        st.cache_data.clear()  # Updated cache clearing method
+    
         if selected_model:
             # Get just the filename from the full path
             result = predict_price(property_data, model_type, selected_model)
