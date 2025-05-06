@@ -159,7 +159,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-          - name: Install SQL Server ODBC Driver and Tools
+      - name: Install SQL Server ODBC Driver and Tools
           run: |
             echo 'Installing Microsoft SQL Server ODBC Driver'
             # Remove possible duplicate sources list
