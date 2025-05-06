@@ -82,21 +82,21 @@ jobs:
           pip install -r requirements.txt
 
       - name: Install SQL Server ODBC Driver and Tools
-        - script: |
-        echo 'Installing Keys'
-        sudo sh -c 'curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -'
-        sudo sh -c 'curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list > /etc/apt/sources.list.d/mssql-release.list'
-        echo 'Updating'
-        sudo apt-get update
-        echo 'Installing msodbc17'
-        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17
-        echo 'Installing mssql-tools17'
-        sudo ACCEPT_EULA=Y apt-get install -y mssql-tools17
-        echo 'Updating Path'
-        echo 'export PATH="$PATH:/opt/mssql-tools17/bin"' >> ~/.bashrc
-        source ~/.bashrc
-        echo 'Installing unixodbc-dev'
-        sudo apt-get install -y unixodbc-dev
+        - run: |
+          echo 'Installing Keys'
+          sudo sh -c 'curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -'
+          sudo sh -c 'curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list > /etc/apt/sources.list.d/mssql-release.list'
+          echo 'Updating'
+          sudo apt-get update
+          echo 'Installing msodbc17'
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17
+          echo 'Installing mssql-tools17'
+          sudo ACCEPT_EULA=Y apt-get install -y mssql-tools17
+          echo 'Updating Path'
+          echo 'export PATH="$PATH:/opt/mssql-tools17/bin"' >> ~/.bashrc
+          source ~/.bashrc
+          echo 'Installing unixodbc-dev'
+          sudo apt-get install -y unixodbc-dev
           
       - name: Update scraper config
         run: |
