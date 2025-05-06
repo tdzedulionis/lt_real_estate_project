@@ -95,7 +95,7 @@ jobs:
           curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
             
           # Add Microsoft repository for SQL tools
-          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/22.04/prod ubuntu-jammy main' > /etc/apt/sources.list.d/mssql-release.list"
+          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main' > /etc/apt/sources.list.d/mssql-release.list"
             
           sudo apt-get update
             
@@ -153,7 +153,7 @@ jobs:
           curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
           
           # Add Microsoft repository for SQL tools
-          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/22.04/prod ubuntu-jammy main' > /etc/apt/sources.list.d/mssql-release.list"
+          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main' > /etc/apt/sources.list.d/mssql-release.list"
           
           sudo apt-get update
           
