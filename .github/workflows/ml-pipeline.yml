@@ -94,17 +94,8 @@ jobs:
           # Import Microsoft GPG key using recommended approach
           curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
             
-          # Add repository - using the Microsoft SQL format without 'ubuntu' component
-          UBUNTU_VERSION=$(lsb_release -rs)
-          echo "Ubuntu version: $UBUNTU_VERSION"
-            
-          # For newer Ubuntu versions, use a known working version (22.04)
-          if [[ "$UBUNTU_VERSION" == "24.04" ]]; then
-            echo "Using Ubuntu 22.04 repo for compatibility with 24.04"
-            UBUNTU_VERSION="22.04"
-          fi
-            
-          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$UBUNTU_VERSION/prod/ main' > /etc/apt/sources.list.d/mssql-release.list"
+          # Add Microsoft repository for SQL tools
+          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/22.04/prod ubuntu-jammy main' > /etc/apt/sources.list.d/mssql-release.list"
             
           sudo apt-get update
             
@@ -161,17 +152,8 @@ jobs:
           # Import Microsoft GPG key using recommended approach
           curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
           
-          # Add repository - using the Microsoft SQL format without 'ubuntu' component
-          UBUNTU_VERSION=$(lsb_release -rs)
-          echo "Ubuntu version: $UBUNTU_VERSION"
-          
-          # For newer Ubuntu versions, use a known working version (22.04)
-          if [[ "$UBUNTU_VERSION" == "24.04" ]]; then
-            echo "Using Ubuntu 22.04 repo for compatibility with 24.04"
-            UBUNTU_VERSION="22.04"
-          fi
-          
-          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$UBUNTU_VERSION/prod/ main' > /etc/apt/sources.list.d/mssql-release.list"
+          # Add Microsoft repository for SQL tools
+          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/22.04/prod ubuntu-jammy main' > /etc/apt/sources.list.d/mssql-release.list"
           
           sudo apt-get update
           
