@@ -112,10 +112,11 @@ jobs:
           ls -l /opt/microsoft/msodbcsql18/lib64/
           
           # Verify driver installation
-          if [ ! -f /opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.*.so.* ]; then
+          if ! find /opt/microsoft/msodbcsql18/lib64/ -name "libmsodbcsql-18.*.so.*" | grep -q .; then
             echo "ODBC driver file not found!"
             exit 1
           fi
+          echo "ODBC driver file found successfully"
           
           # List installed ODBC drivers
           echo "Installed ODBC drivers:"
@@ -180,10 +181,11 @@ jobs:
           ls -l /opt/microsoft/msodbcsql18/lib64/
           
           # Verify driver installation
-          if [ ! -f /opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.*.so.* ]; then
+          if ! find /opt/microsoft/msodbcsql18/lib64/ -name "libmsodbcsql-18.*.so.*" | grep -q .; then
             echo "ODBC driver file not found!"
             exit 1
           fi
+          echo "ODBC driver file found successfully"
           
           # List installed ODBC drivers
           echo "Installed ODBC drivers:"
