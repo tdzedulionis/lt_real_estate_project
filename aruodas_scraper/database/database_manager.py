@@ -12,8 +12,8 @@ from ..config.settings import DATABASE_CONFIG
 
 def get_connection_string():
     """Get the appropriate connection string based on the environment."""
-    # Use Driver 17 for Linux, Driver 18 for Windows
-    driver = "ODBC Driver 17 for SQL Server" if os.name != 'nt' else "ODBC Driver 18 for SQL Server"
+    # Use ODBC Driver 18 consistently
+    driver = "ODBC Driver 18 for SQL Server"
     
     return (
         f"Driver={{{driver}}};"
