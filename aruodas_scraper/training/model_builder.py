@@ -20,7 +20,15 @@ from aruodas_scraper.training.visualization import (plot_learning_curves, plot_f
                           plot_residuals, plot_model_comparison)
 from aruodas_scraper.training.utils import get_property_config, create_model_directories, prepare_features
 import warnings
-warnings.filterwarnings('ignore')
+# Filter out specific warning types
+warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=RuntimeWarning)
+warnings.filterwarnings('ignore', message='.*No further splits.*')
+warnings.filterwarnings('ignore', message='.*Base score.*')
+warnings.filterwarnings('ignore', message='.*label encoder.*')
+warnings.filterwarnings('ignore', message='.*DataConversionWarning.*')
+warnings.filterwarnings('ignore', message='.*Optimization.*did not converge.*')
 
 def evaluate_model(model_name, y_true, y_pred):
     """Evaluate model performance using multiple metrics."""
@@ -84,7 +92,12 @@ def final_ml_analysis(df, target='price', test_size=0.2,
     print("\n3. Setting up models and hyperparameter grids")
     models_and_params = {
         'LightGBM': (
-            lgbm.LGBMRegressor(random_state=random_state),
+            lgbm.LGBMRegressor(
+                random_state=random_state,
+                verbose=-1,
+                min_child_samples=20,
+                min_split_gain=0.1
+            ),
             {
                 'model__n_estimators': [100, 200],
                 'model__learning_rate': [0.01, 0.1],
@@ -94,7 +107,12 @@ def final_ml_analysis(df, target='price', test_size=0.2,
             }
         ),
         'XGBoost': (
-            XGBRegressor(random_state=random_state),
+            XGBRegressor(
+                random_state=random_state,
+                verbosity=0,
+                min_child_weight=5,
+                gamma=0.1
+            ),
             {
                 'model__n_estimators': [100, 200],
                 'model__learning_rate': [0.01, 0.1],
@@ -103,7 +121,11 @@ def final_ml_analysis(df, target='price', test_size=0.2,
             }
         ),
         'Gradient Boosting': (
-            GradientBoostingRegressor(random_state=random_state),
+            GradientBoostingRegressor(
+                random_state=random_state,
+                min_samples_split=20,
+                min_impurity_decrease=0.1
+            ),
             {
                 'model__n_estimators': [100, 200],
                 'model__learning_rate': [0.01, 0.1],
@@ -132,7 +154,7 @@ def final_ml_analysis(df, target='price', test_size=0.2,
             cv=5,
             scoring='neg_mean_squared_error',
             n_jobs=-1,
-            verbose=2
+            verbose=0
         )
         
         grid_search.fit(X_train, y_train)
@@ -171,7 +193,7 @@ def final_ml_analysis(df, target='price', test_size=0.2,
         cv=5,
         scoring='neg_mean_squared_error',
         n_jobs=-1,
-        verbose=2
+        verbose=0
     )
     meta_grid_search.fit(meta_features_train, y_train)
     meta_model = meta_grid_search.best_estimator_
