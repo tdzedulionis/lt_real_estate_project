@@ -93,29 +93,31 @@ jobs:
             
           # Clean up any existing Microsoft repository configurations
           sudo rm -f /usr/share/keyrings/microsoft-prod.gpg
-          sudo rm -f /usr/share/keyrings/microsoft-archive-keyring.gpg
-          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
+          sudo rm -f /etc/apt/sources.list.d/mssql-release.list
             
-          # Import Microsoft GPG key using a consistent filename
-          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+          # Import Microsoft GPG key
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
             
-          # Add Microsoft repository for SQL tools
-          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main' > /etc/apt/sources.list.d/mssql-release.list"
+          # Add Microsoft repository for SQL tools (using Ubuntu 22.04)
+          curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
             
           sudo apt-get update
             
-          # Try to install the driver with better error reporting
+          # Install ODBC Driver with verification
           echo 'Installing ODBC Driver'
-          if sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18; then
-            echo "Successfully installed msodbcsql18"
-          elif sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17; then
-            echo "Successfully installed msodbcsql17"
-          else
-            echo "Failed to install SQL Server ODBC drivers"
-            echo "Available packages in Microsoft repo:"
-            apt-cache search msodbcsql
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
+          
+          # Verify driver installation
+          if [ ! -f /opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.*.so.*.*.* ]; then
+            echo "ODBC driver file not found!"
+            ls -l /opt/microsoft/msodbcsql18/lib64/
             exit 1
           fi
+          
+          # List installed ODBC drivers
+          echo "Installed ODBC drivers:"
+          odbcinst -j
+          odbcinst -q -d
 
       - name: Update scraper config
         run: |
@@ -156,29 +158,31 @@ jobs:
           
           # Clean up any existing Microsoft repository configurations
           sudo rm -f /usr/share/keyrings/microsoft-prod.gpg
-          sudo rm -f /usr/share/keyrings/microsoft-archive-keyring.gpg
-          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
+          sudo rm -f /etc/apt/sources.list.d/mssql-release.list
           
-          # Import Microsoft GPG key using a consistent filename
-          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+          # Import Microsoft GPG key
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
           
-          # Add Microsoft repository for SQL tools
-          sudo sh -c "echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main' > /etc/apt/sources.list.d/mssql-release.list"
+          # Add Microsoft repository for SQL tools (using Ubuntu 22.04)
+          curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
           
           sudo apt-get update
           
-          # Try to install the driver with better error reporting
+          # Install ODBC Driver with verification
           echo 'Installing ODBC Driver'
-          if sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18; then
-            echo "Successfully installed msodbcsql18"
-          elif sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17; then
-            echo "Successfully installed msodbcsql17"
-          else
-            echo "Failed to install SQL Server ODBC drivers"
-            echo "Available packages in Microsoft repo:"
-            apt-cache search msodbcsql
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
+          
+          # Verify driver installation
+          if [ ! -f /opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.*.so.*.*.* ]; then
+            echo "ODBC driver file not found!"
+            ls -l /opt/microsoft/msodbcsql18/lib64/
             exit 1
           fi
+          
+          # List installed ODBC drivers
+          echo "Installed ODBC drivers:"
+          odbcinst -j
+          odbcinst -q -d
           
       - name: Install Chrome and ChromeDriver
         run: |
