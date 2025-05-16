@@ -23,9 +23,9 @@ PROPERTY_TYPES = {
 
 # Scraper settings
 SCRAPER_CONFIG = {
-    'max_pages': '1',
+    'max_pages': 100,
     'base_url': 'https://www.aruodas.lt',
-    'category': 'butai',  # 'butai' for selling, 'butu-nuoma' for rental
+    'category': 'butu-nuoma',  # 'butai' for selling, 'butu-nuoma' for rental
     'location': '',
     'max_retries': 4,
     'timeout': 10,
