@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Main script for running the Aruodas.lt scraper and data processing pipeline."""
 
+import os
 import pandas as pd
 from aruodas_scraper.scraper.aruodas_scraper import AruodasScraper
 from aruodas_scraper.database.database_manager import create_table, add_new_rows, prepare_dataframe, get_data
@@ -83,19 +84,38 @@ def main():
             print("Engineering features...")
             df_features = engineer_features(df_cleaned)
             
+            print("\nEnsuring output directories exist...")
+            setup_directories(property_config)
+            
             print("\nTraining and evaluating models...")
-            final_ml_analysis(
-                df_features,
-                output_dir=property_config['output_dir'],
-                log = True
-            )
-            
-            print(f"\nModel training completed successfully!")
-            
-            print("\nUploading models to Azure Blob Storage...")
-            upload_models_to_blob('rental')
-            upload_models_to_blob('selling')
-            print(f"\nModel uploading completed successfully!")
+            try:
+                final_ml_analysis(
+                    df_features,
+                    output_dir=property_config['output_dir'],
+                    log=True
+                )
+                print(f"\nModel training completed successfully!")
+                
+                # Verify models were created
+                models_dir = property_config['model_dir']
+                if not os.path.exists(models_dir):
+                    raise FileNotFoundError(f"Model directory not found after training: {models_dir}")
+                
+                model_files = os.listdir(models_dir)
+                expected_models = ['ensemble.pkl', 'gradient_boosting.pkl', 'lightgbm.pkl', 'xgboost.pkl']
+                missing_models = [m for m in expected_models if m not in model_files]
+                if missing_models:
+                    raise FileNotFoundError(f"Missing expected model files: {', '.join(missing_models)}")
+                print(f"Found all required model files in: {models_dir}")
+                
+                print("\nUploading models to Azure Blob Storage...")
+                current_category = SCRAPER_CONFIG['category']
+                property_type = 'rental' if current_category == 'butu-nuoma' else 'selling'
+                upload_models_to_blob(property_type)
+                print(f"\nModel uploading completed successfully!")
+            except Exception as e:
+                print(f"\nError during model training and upload: {e}")
+                raise
             
         print("\n=== Pipeline Completed Successfully! ===")
         

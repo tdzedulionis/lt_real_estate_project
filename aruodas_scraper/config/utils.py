@@ -7,13 +7,26 @@ from aruodas_scraper.config.settings import SCRAPER_CONFIG, PROPERTY_TYPES, BLOB
 
 def setup_directories(property_config):
     """Create output, model, visualization, and SHAP analysis directories if they don't exist."""
-    for dir_path in [
-        property_config['output_dir'],
-        property_config['model_dir'],
-        property_config['viz_dir'],
-        property_config['shap_dir']
-    ]:
-        os.makedirs(dir_path, exist_ok=True)
+    required_dirs = [
+        ('output_dir', property_config['output_dir']),
+        ('model_dir', property_config['model_dir']),
+        ('viz_dir', property_config['viz_dir']),
+        ('shap_dir', property_config['shap_dir'])
+    ]
+    
+    for dir_name, dir_path in required_dirs:
+        try:
+            logging.info(f"Creating directory {dir_name} at: {dir_path}")
+            os.makedirs(dir_path, exist_ok=True)
+            
+            # Verify directory was created
+            if not os.path.exists(dir_path):
+                raise OSError(f"Failed to create directory {dir_name} at: {dir_path}")
+            else:
+                logging.info(f"Successfully created/verified directory: {dir_path}")
+        except Exception as e:
+            logging.error(f"Error creating directory {dir_name} at {dir_path}: {str(e)}")
+            raise
         
 def get_property_config():
     """Return property-specific configuration dict based on current scraper category."""
@@ -29,9 +42,16 @@ def upload_models_to_blob(property_type):
         container_name = BLOB_CONFIG['container_name']
         models_directory = f"model_output/{property_type}/models/"
         
+        logging.info(f"Verifying model directory exists: {models_directory}")
         # Verify directory exists
         if not os.path.exists(models_directory):
-            raise FileNotFoundError(f"Models directory not found: {models_directory}")
+            logging.error(f"Models directory not found at: {models_directory}")
+            logging.error(f"Current working directory: {os.getcwd()}")
+            logging.error(f"Directory contents: {os.listdir('model_output')}")
+            raise FileNotFoundError(
+                f"Models directory not found: {models_directory}. "
+                f"Please ensure models are trained before uploading."
+            )
             
         # Verify we have models to upload
         model_files = os.listdir(models_directory)

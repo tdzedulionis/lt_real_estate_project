@@ -17,15 +17,29 @@ def get_property_config(output_dir, property_types):
 
 def create_model_directories(property_config):
     """Create necessary directories for model outputs."""
-    directories = [
-        property_config['output_dir'],
-        property_config['model_dir'],
-        property_config['viz_dir'],
-        property_config['shap_dir']
-    ]
+    required_dirs = {
+        'output_dir': property_config['output_dir'],
+        'model_dir': property_config['model_dir'],
+        'viz_dir': property_config['viz_dir'],
+        'shap_dir': property_config['shap_dir']
+    }
     
-    for dir_path in directories:
-        os.makedirs(dir_path, exist_ok=True)
+    for dir_name, dir_path in required_dirs.items():
+        try:
+            print(f"Creating {dir_name} at: {dir_path}")
+            os.makedirs(dir_path, exist_ok=True)
+            
+            # Verify directory was created
+            if not os.path.exists(dir_path):
+                raise OSError(f"Failed to create {dir_name} directory at: {dir_path}")
+            else:
+                print(f"Successfully created/verified {dir_name} directory")
+                
+        except Exception as e:
+            print(f"Error creating {dir_name} directory: {str(e)}")
+            print(f"Current working directory: {os.getcwd()}")
+            print(f"Directory contents: {os.listdir(os.path.dirname(dir_path))}")
+            raise OSError(f"Failed to create/verify {dir_name} directory: {str(e)}")
 
 def prepare_features(df, target='price'):
     """Split DataFrame columns into numeric and categorical features, removing price-related columns."""

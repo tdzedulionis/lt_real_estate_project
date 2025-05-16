@@ -232,23 +232,50 @@ def final_ml_analysis(df, target='price', test_size=0.2,
     
     # Save models
     if save_model:
-        # Save individual models directly in the models directory
-        for name, model in trained_models.items():
-            model_path = os.path.join(property_config['model_dir'], f'{name.lower().replace(" ", "_")}.pkl')
-            joblib.dump(model, model_path)
-            print(f"Saved {name} model to {model_path}")
-        
-        # Save ensemble
-        ensemble = {
-            'base_models': trained_models,
-            'meta_model': meta_model,
-            'preprocessor': preprocessor,
-            'feature_names': feature_names,
-            'target_info': {'log_transform': True if log else False}
-        }
-        ensemble_path = os.path.join(property_config['model_dir'], 'ensemble.pkl')
-        joblib.dump(ensemble, ensemble_path)
-        print(f"Saved ensemble model to {ensemble_path}")
+        try:
+            model_dir = property_config['model_dir']
+            if not os.path.exists(model_dir):
+                print(f"Creating model directory: {model_dir}")
+                os.makedirs(model_dir, exist_ok=True)
+
+            print("\n6. Saving trained models...")
+            # Save individual models directly in the models directory
+            for name, model in trained_models.items():
+                model_path = os.path.join(model_dir, f'{name.lower().replace(" ", "_")}.pkl')
+                print(f"Saving {name} model to {model_path}...")
+                joblib.dump(model, model_path)
+                
+                # Verify saved model can be loaded
+                try:
+                    joblib.load(model_path)
+                    print(f"Successfully saved and verified {name} model")
+                except Exception as e:
+                    raise IOError(f"Failed to verify {name} model after saving: {str(e)}")
+            
+            # Save ensemble
+            ensemble = {
+                'base_models': trained_models,
+                'meta_model': meta_model,
+                'preprocessor': preprocessor,
+                'feature_names': feature_names,
+                'target_info': {'log_transform': True if log else False}
+            }
+            ensemble_path = os.path.join(model_dir, 'ensemble.pkl')
+            print(f"Saving ensemble model to {ensemble_path}...")
+            joblib.dump(ensemble, ensemble_path)
+            
+            # Verify ensemble can be loaded
+            try:
+                joblib.load(ensemble_path)
+                print("Successfully saved and verified ensemble model")
+            except Exception as e:
+                raise IOError(f"Failed to verify ensemble model after saving: {str(e)}")
+            
+            print("\nAll models saved and verified successfully!")
+            
+        except Exception as e:
+            print(f"\nError saving models: {str(e)}")
+            raise
     
     return ensemble, {'base_models': results, 'cv': cv_results, 'ensemble': final_metrics}
 
