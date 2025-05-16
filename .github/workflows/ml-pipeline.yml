@@ -107,10 +107,13 @@ jobs:
           echo 'Installing ODBC Driver'
           sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
           
+          # List driver files for debugging
+          echo "Checking ODBC driver files:"
+          ls -l /opt/microsoft/msodbcsql18/lib64/
+          
           # Verify driver installation
-          if [ ! -f /opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.*.so.*.*.* ]; then
+          if [ ! -f /opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.*.so.* ]; then
             echo "ODBC driver file not found!"
-            ls -l /opt/microsoft/msodbcsql18/lib64/
             exit 1
           fi
           
@@ -172,10 +175,13 @@ jobs:
           echo 'Installing ODBC Driver'
           sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
           
+          # List driver files for debugging
+          echo "Checking ODBC driver files:"
+          ls -l /opt/microsoft/msodbcsql18/lib64/
+          
           # Verify driver installation
-          if [ ! -f /opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.*.so.*.*.* ]; then
+          if [ ! -f /opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.*.so.* ]; then
             echo "ODBC driver file not found!"
-            ls -l /opt/microsoft/msodbcsql18/lib64/
             exit 1
           fi
           
