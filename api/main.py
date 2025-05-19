@@ -190,6 +190,7 @@ def get_city_center(city_name, country='Lithuania'):
 
 def download_specific_model(model_type, model_name):
     """Download and cache a specific model from blob storage with required features and metrics."""
+    import pickle
     # Check if model is in cache and valid
     if is_cache_valid(model_type, model_name):
         logger.info(f"Using cached specific model: {model_name}")
@@ -217,8 +218,15 @@ def download_specific_model(model_type, model_name):
             logger.error(f"Failed to download model {model_name}: {str(e)}")
             raise HTTPException(status_code=404, detail=f"Model {model_name} not found")
         
-        # Load the model
-        model = joblib.load(temp_file_path)
+        # Load the model with custom unpickler to handle random state
+        class CustomUnpickler(pickle.Unpickler):
+            def find_class(self, module, name):
+                if module == "numpy.random._mt19937" and name == "MT19937":
+                    return np.random.MT19937
+                return super().find_class(module, name)
+                
+        with open(temp_file_path, 'rb') as f:
+            model = CustomUnpickler(f).load()
         
         # Extract model metrics
         metrics = {}
@@ -277,6 +285,7 @@ def download_specific_model(model_type, model_name):
 
 def download_latest_model(model_type):
     """Download and cache most recent model from blob storage based on modified date."""
+    import pickle
     # Use cached model if valid
     if is_cache_valid(model_type):
         logger.info(f"Using cached {model_type} model")
@@ -314,8 +323,15 @@ def download_latest_model(model_type):
             blob_data = blob_client.download_blob(latest_model.name).readall()
             file.write(blob_data)
         
-        # Load the model
-        model = joblib.load(temp_file_path)
+        # Load the model with custom unpickler to handle random state
+        class CustomUnpickler(pickle.Unpickler):
+            def find_class(self, module, name):
+                if module == "numpy.random._mt19937" and name == "MT19937":
+                    return np.random.MT19937
+                return super().find_class(module, name)
+                
+        with open(temp_file_path, 'rb') as f:
+            model = CustomUnpickler(f).load()
         
         # Extract model metrics
         metrics = {}
