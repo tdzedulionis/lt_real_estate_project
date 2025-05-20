@@ -3,3 +3,4 @@ gnupg2
 unixodbc
 unixodbc-dev
 msodbcsql18
+openssl

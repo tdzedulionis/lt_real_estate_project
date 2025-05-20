@@ -22,7 +22,7 @@ def get_connection_string():
         f"Uid={DATABASE_CONFIG['username']};"
         f"Pwd={DATABASE_CONFIG['password']};"
         "Encrypt=yes;"
-        "TrustServerCertificate=no;"
+        "TrustServerCertificate=yes;"  # Allow self-signed certificates
         "Connection Timeout=30;"
     )
 
