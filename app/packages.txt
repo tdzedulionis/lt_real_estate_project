@@ -1,2 +1,4 @@
+curl
+gnupg2
 unixodbc
 unixodbc-dev
