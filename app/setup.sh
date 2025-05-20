@@ -1,13 +1,10 @@
 #!/bin/bash
 
-# Add Microsoft repository signing key
-curl https://packages.microsoft.com/keys/microsoft.asc | tee /etc/apt/trusted.gpg.d/microsoft.asc
+# Download the Microsoft ODBC driver package directly
+curl https://packages.microsoft.com/debian/10/prod/pool/main/m/msodbcsql18/msodbcsql18_18.2.1.1-1_amd64.deb -o msodbcsql18.deb
 
-# Add Microsoft repository
-curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > /etc/apt/sources.list.d/mssql-release.list
+# Install the package (ACCEPT_EULA=Y is required for automated installation)
+ACCEPT_EULA=Y dpkg -i msodbcsql18.deb
 
-# Update package list
-apt-get update
-
-# Install SQL Server ODBC Driver (automatically accepts EULA)
-ACCEPT_EULA=Y apt-get install -y msodbcsql18
+# Clean up the downloaded package
+rm msodbcsql18.deb
