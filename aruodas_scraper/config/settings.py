@@ -34,8 +34,8 @@ SCRAPER_CONFIG = {
 
 # Pipeline configuration
 PIPELINE_CONFIG = {
-    'scrape_data': False,
-    'retrain_model': True  # Whether to retrain models after scraping
+    'scrape_data': True,
+    'retrain_model': False  # Whether to retrain models after scraping
 }
 
 # Load environment variables
