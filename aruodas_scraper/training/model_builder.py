@@ -243,7 +243,7 @@ def final_ml_analysis(df, target='price', test_size=0.2,
             for name, model in trained_models.items():
                 model_path = os.path.join(model_dir, f'{name.lower().replace(" ", "_")}.pkl')
                 print(f"Saving {name} model to {model_path}...")
-                joblib.dump(model, model_path)
+                joblib.dump(model, model_path, protocol=4)
                 
                 # Verify saved model can be loaded
                 try:
@@ -262,7 +262,7 @@ def final_ml_analysis(df, target='price', test_size=0.2,
             }
             ensemble_path = os.path.join(model_dir, 'ensemble.pkl')
             print(f"Saving ensemble model to {ensemble_path}...")
-            joblib.dump(ensemble, ensemble_path)
+            joblib.dump(ensemble, ensemble_path, protocol=4)
             
             # Verify ensemble can be loaded
             try:
