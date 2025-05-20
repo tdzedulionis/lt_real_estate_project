@@ -4,3 +4,4 @@ unixodbc
 unixodbc-dev
 msodbcsql18
 openssl
+apt-transport-https
