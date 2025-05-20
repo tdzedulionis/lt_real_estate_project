@@ -12,8 +12,12 @@ from ..config.settings import DATABASE_CONFIG
 
 def get_connection_string():
     """Get the appropriate connection string based on the environment."""
-    # Use ODBC Driver 18 consistently
-    driver = "ODBC Driver 18 for SQL Server"
+    
+    # Check if running in Streamlit environment
+    is_streamlit = 'streamlit' in sys.modules
+    
+    # Use Driver 17 for Streamlit, Driver 18 elsewhere
+    driver = "ODBC Driver 17 for SQL Server" if is_streamlit else "ODBC Driver 18 for SQL Server"
     
     return (
         f"Driver={{{driver}}};"

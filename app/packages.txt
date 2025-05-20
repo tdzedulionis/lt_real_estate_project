@@ -2,6 +2,6 @@ curl
 gnupg2
 unixodbc
 unixodbc-dev
-msodbcsql18
+msodbcsql17
 openssl
 apt-transport-https
