@@ -3,4 +3,4 @@ curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/source
 
 # Install ODBC Driver 17
 apt-get update
-ACCEPT_EULA=Y apt-get install -y msodbcsql17
+ACCEPT_EULA=Y apt-get install -y msodbcsql18
