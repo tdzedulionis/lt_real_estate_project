@@ -49,6 +49,7 @@ def get_connection_string():
         "TrustServerCertificate=yes;"
         "Connection Timeout=60;"
         "Login Timeout=60;"
+        f"Command Timeout=300;"
     )
     
     return connection_string
@@ -58,7 +59,7 @@ def get_db_connection():
     max_attempts = 8
     attempt = 0
     
-    
+
     try:
         conn_str = get_connection_string()
     except Exception as e:

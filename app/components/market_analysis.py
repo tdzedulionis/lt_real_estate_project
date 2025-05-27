@@ -360,7 +360,7 @@ def display_market_analysis():
     """Display market analysis section."""
     st.header("📊 Market Analysis")
     
-    # Add type selector, date range, and refresh button
+    # type selector, date range, and refresh button
     col1, col2, col3 = st.columns([2, 2, 1])
     with col1:
         listing_type = st.radio(
@@ -384,6 +384,20 @@ def display_market_analysis():
             load_market_data.clear()
             get_cities.clear()
             st.success("Data refreshed!")
+
+    # Test database connection
+    try:
+        from aruodas_scraper.database.database_manager import get_db_connection
+        conn = get_db_connection()
+        if conn is None:
+            st.error("❌ Unable to connect to database. Market analysis is temporarily unavailable.")
+            st.info("💡 This feature requires database access. Please try again later or contact support.")
+            return
+        conn.close()
+    except Exception as e:
+        st.error("❌ Database connection failed. Market analysis is temporarily unavailable.")
+        st.info("💡 This feature requires database access. Please try again later.")
+        return
 
     # Location selector
     selected_location = st.selectbox(
