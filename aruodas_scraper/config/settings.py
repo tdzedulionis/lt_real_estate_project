@@ -42,12 +42,25 @@ PIPELINE_CONFIG = {
 load_dotenv(override=True)
 
 # Database settings
-DATABASE_CONFIG = {
-    'server': os.getenv('DB_SERVER'),
-    'database': os.getenv('DB_NAME'),
-    'username': os.getenv('DB_USER'),
-    'password': os.getenv('DB_PASSWORD')
-}
+def get_database_config():
+    try:
+        # For Streamlit Cloud deployment
+        return {
+            'server': st.secrets["database"]["DB_SERVER"],
+            'database': st.secrets["database"]["DB_NAME"],
+            'username': st.secrets["database"]["DB_USER"],
+            'password': st.secrets["database"]["DB_PASSWORD"]
+        }
+    except:
+        # For local development
+        return {
+            'server': os.getenv('DB_SERVER'),
+            'database': os.getenv('DB_NAME'),
+            'username': os.getenv('DB_USER'),
+            'password': os.getenv('DB_PASSWORD')
+        }
+
+DATABASE_CONFIG = get_database_config()
 
 # Azure blob settings
 BLOB_CONFIG = {

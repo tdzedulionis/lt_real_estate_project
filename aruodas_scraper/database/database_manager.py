@@ -41,10 +41,10 @@ def get_connection_string():
     
     connection_string = (
         f"Driver={{{driver}}};"
-        f"Server={st.secrets['server']};"
-        f"Database={st.secrets['database']};"
-        f"Uid={st.secrets['username']};"
-        f"Pwd={st.secrets['password']};"
+        f"Server={DATABASE_CONFIG['server']};"
+        f"Database={DATABASE_CONFIG['database']};"
+        f"Uid={DATABASE_CONFIG['username']};"
+        f"Pwd={DATABASE_CONFIG['password']};"
         #"Encrypt=yes;"
         #"TrustServerCertificate=yes;"
         #"Connection Timeout=60;"
