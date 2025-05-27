@@ -372,7 +372,7 @@ def display_market_analysis():
     
     with col2:
         default_end_date = datetime.now()
-        default_start_date = default_end_date - timedelta(days=30)
+        default_start_date = datetime(default_end_date.year, 1, 1)
         date_range = st.date_input(
             "Date Range",
             value=(default_start_date, default_end_date),

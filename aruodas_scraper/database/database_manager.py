@@ -10,39 +10,66 @@ import unidecode
 from datetime import datetime
 from ..config.settings import DATABASE_CONFIG
 
+def get_available_driver():
+    """Get the first available SQL Server ODBC driver."""
+    drivers = pyodbc.drivers()
+    
+    # Preferred order of drivers
+    preferred_drivers = [
+        "ODBC Driver 18 for SQL Server",
+        "ODBC Driver 17 for SQL Server", 
+        "ODBC Driver 13 for SQL Server",
+        "SQL Server Native Client 11.0",
+        "SQL Server"
+    ]
+    
+    for driver in preferred_drivers:
+        if driver in drivers:
+            return driver
+    
+    raise Exception(f"No suitable SQL Server ODBC driver found. Available drivers: {drivers}")
+
 def get_connection_string():
-    """Get the appropriate connection string based on the environment."""
+    """Get the appropriate connection string based on available drivers."""
     
-    # Check if running in Streamlit environment
-    is_streamlit = 'streamlit' in sys.modules
+    try:
+        driver = get_available_driver()
+        print(f"Using ODBC driver: {driver}")
+    except Exception as e:
+        print(f"Driver detection error: {e}")
+        raise
     
-    # Use Driver 17 for Streamlit, Driver 18 elsewhere
-    driver = "ODBC Driver 17 for SQL Server" if is_streamlit else "ODBC Driver 18 for SQL Server"
-    
-    return (
+    connection_string = (
         f"Driver={{{driver}}};"
         f"Server={DATABASE_CONFIG['server']};"
         f"Database={DATABASE_CONFIG['database']};"
         f"Uid={DATABASE_CONFIG['username']};"
         f"Pwd={DATABASE_CONFIG['password']};"
         "Encrypt=yes;"
-        "TrustServerCertificate=yes;"  # Allow self-signed certificates
-        "Connection Timeout=30;"
+        "TrustServerCertificate=yes;"
+        "Connection Timeout=60;"
+        "Login Timeout=60;"
     )
-
-# Get the environment-aware connection string
-CONN_STR = get_connection_string()
+    
+    return connection_string
 
 def get_db_connection():
     """Connect to Azure SQL database with retry logic, returns Connection object or None."""
     max_attempts = 8
     attempt = 0
     
+    
+    try:
+        conn_str = get_connection_string()
+    except Exception as e:
+        print(f"Failed to get connection string: {e}")
+        return None
+    
     while attempt < max_attempts:
         try:
             attempt += 1
             print(f"Connection attempt {attempt}/{max_attempts}...")
-            conn = pyodbc.connect(CONN_STR)
+            conn = pyodbc.connect(conn_str)
             print("Database connection established successfully.")
             return conn
         except pyodbc.Error as ex:
@@ -57,7 +84,7 @@ def get_db_connection():
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             return None
-
+        
 def create_table(df, table_name = "butai"):
     """Create database table based on DataFrame schema if it doesn't exist."""
     conn = get_db_connection()
