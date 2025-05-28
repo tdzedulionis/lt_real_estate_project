@@ -17,8 +17,8 @@ def get_available_driver():
     # Preferred order of drivers
     preferred_drivers = [
         "ODBC Driver 18 for SQL Server",
-        "ODBC Driver 17 for SQL Server", 
-        "ODBC Driver 13 for SQL Server",
+        #"ODBC Driver 17 for SQL Server", 
+        #"ODBC Driver 13 for SQL Server",
         "SQL Server Native Client 11.0",
         "SQL Server"
     ]

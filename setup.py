@@ -32,13 +32,13 @@ setup(
     },
     python_requires='>=3.8',
     author="Your Name",
-    author_email="your.email@example.com",
+    author_email="tomas.dzedulionis@gmail.com",
     description="A comprehensive real estate analytics platform for Aruodas.lt",
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
     keywords="real-estate, web-scraping, machine-learning, price-prediction",
     project_urls={
-        "Source": "https://github.com/yourusername/aruodas_scraper",
+        "Source": "https://github.com/tdzedulionis/lt_real_estate_project/",
     },
     classifiers=[
         'Development Status :: 4 - Beta',
