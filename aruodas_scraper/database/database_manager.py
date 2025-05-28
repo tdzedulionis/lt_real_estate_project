@@ -17,8 +17,8 @@ def get_available_driver():
     # Preferred order of drivers
     preferred_drivers = [
         "ODBC Driver 18 for SQL Server",
-        #"ODBC Driver 17 for SQL Server", 
-        #"ODBC Driver 13 for SQL Server",
+        "ODBC Driver 17 for SQL Server", 
+        "ODBC Driver 13 for SQL Server",
         "SQL Server Native Client 11.0",
         "SQL Server"
     ]
@@ -39,18 +39,46 @@ def get_connection_string():
         print(f"Driver detection error: {e}")
         raise
     
-    connection_string = (
-        f"Driver={{{driver}}};"
-        f"Server={DATABASE_CONFIG['server']};"
-        f"Database={DATABASE_CONFIG['database']};"
-        f"Uid={DATABASE_CONFIG['username']};"
-        f"Pwd={DATABASE_CONFIG['password']};"
-        f"Encrypt=yes;"
-        f"TrustServerCertificate=yes;"
-        f"Connection Timeout=60;"
-        f"Login Timeout=60;"
-        f"Command Timeout=300;"
-    )
+    # Add port to server if not already present
+    server = DATABASE_CONFIG['server']
+    if ',' not in server and ':' not in server:
+        server = f"{server},1433"  # Add default SQL Server port
+    
+    print(f"Server with port: {server}")
+    print(f"Database: {DATABASE_CONFIG['database']}")
+    print(f"Username: {DATABASE_CONFIG['username']}")
+    print(f"Password: {'*' * len(DATABASE_CONFIG['password']) if DATABASE_CONFIG['password'] else 'None'}")
+    
+    # Different connection strings based on driver version
+    if "18" in driver:
+        # ODBC Driver 18 - requires TrustServerCertificate for cloud connections
+        connection_string = (
+            f"DRIVER={{{driver}}};"
+            f"SERVER={server};"
+            f"DATABASE={DATABASE_CONFIG['database']};"
+            f"UID={DATABASE_CONFIG['username']};"
+            f"PWD={DATABASE_CONFIG['password']};"
+            f"Encrypt=yes;"
+            f"TrustServerCertificate=yes;"
+            f"ConnectTimeout=60;"
+            f"LoginTimeout=60;"
+        )
+    else:
+        # ODBC Driver 17 or older - standard connection
+        connection_string = (
+            f"DRIVER={{{driver}}};"
+            f"SERVER={server};"
+            f"DATABASE={DATABASE_CONFIG['database']};"
+            f"UID={DATABASE_CONFIG['username']};"
+            f"PWD={DATABASE_CONFIG['password']};"
+            f"Encrypt=yes;"
+            f"Connection Timeout=60;"
+            f"Login Timeout=60;"
+        )
+    
+    # Debug: Print connection string (mask password)
+    masked_conn_str = connection_string.replace(DATABASE_CONFIG['password'], '*' * len(DATABASE_CONFIG['password']))
+    print(f"Connection string: {masked_conn_str}")
     
     return connection_string
 
