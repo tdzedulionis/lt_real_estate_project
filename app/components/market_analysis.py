@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -9,23 +9,18 @@ import plotly.graph_objects as go
 import statsmodels.api as sm
 import streamlit as st
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from aruodas_scraper.database.database_manager import get_data, get_db_connection, get_streamlit_connection
+from aruodas_scraper.database.database_manager import get_data, get_db_connection
 
 @st.cache_data(ttl=600)  # Cache for 10 minutes
 def load_market_data_streamlit(listing_type="selling", start_date=None, end_date=None):
-    """Load market data using Streamlit connection management."""
+    """Load market data using database connection."""
     try:
-        conn = get_streamlit_connection()
-        if conn is None:
-            return pd.DataFrame()
-        
-        table_name = "butai" if listing_type == "selling" else "butai_rent"
-        
         # Build date filter
         date_filter = ""
         if start_date and end_date:
             date_filter = f"AND scrape_date BETWEEN '{start_date}' AND '{end_date}'"
         
+        table_name = "butai" if listing_type == "selling" else "butai_rent"
         query = f"""
         SELECT 
             price,
@@ -45,63 +40,15 @@ def load_market_data_streamlit(listing_type="selling", start_date=None, end_date
         {date_filter}
         """
         
-        df = conn.query(query, ttl=300)  # Cache query results for 5 minutes
-        return df
+        return get_data(query=query, table_name=table_name)
         
     except Exception as e:
         st.error(f"Failed to load market data: {e}")
-        # Fallback to original method
-        return load_market_data_fallback(listing_type, start_date, end_date)
-
-def load_market_data_fallback(listing_type="selling", start_date=None, end_date=None):
-    """Fallback method using original database connection."""
-    try:
-        from aruodas_scraper.database.database_manager import get_data, get_db_connection
-        
-        table_name = "butai_rent" if listing_type == "rental" else "butai"
-        
-        conn = get_db_connection()
-        if conn is None:
-            return pd.DataFrame()
-
-        # Build date filter
-        date_filter = ""
-        if start_date and end_date:
-            date_filter = f"AND scrape_date BETWEEN '{start_date}' AND '{end_date}'"
-
-        query = f"""
-        SELECT 
-            price,
-            plotas,
-            kambariu_sk,
-            city,
-            pastato_tipas,
-            metai,
-            scrape_date,
-            aukstas,
-            aukstu_sk
-        FROM {table_name}
-        WHERE price IS NOT NULL 
-        AND plotas IS NOT NULL
-        AND price > 0
-        AND plotas > 0
-        {date_filter}
-        """
-
-        df = get_data(query=query, table_name=table_name)
-        return df
-
-    except Exception as e:
-        print(f"Error in fallback data loading: {e}")
         return pd.DataFrame()
 
-@st.cache_data(ttl=3600)  # Cache for 1 hour
 def load_market_data(listing_type="selling", start_date=None, end_date=None):
     """Load market data from database with caching."""
-    # Get all data from database
     table_name = "butai_rent" if listing_type == "rental" else "butai"
-    
-    # First check if table exists and get its structure
     conn = get_db_connection()
     if conn is None:
         return pd.DataFrame()
@@ -127,14 +74,14 @@ def load_market_data(listing_type="selling", start_date=None, end_date=None):
             'metai': ['metai', 'metai', 'construction_year']
         }
         
-        # Map actual column names to our expected names
+        # Map actual column names to expected names
         column_mapping = {}
         for expected, alternatives in required_columns.items():
             found = next((col for col in alternatives if col in columns), None)
             if found:
                 column_mapping[found] = expected
 
-        # Build the query using the actual column names
+        # Build query using actual column names
         actual_cols = [col for col in columns if col in list(column_mapping.keys())]
         select_parts = [f"{col} as {column_mapping[col]}" for col in actual_cols]
         
@@ -172,36 +119,11 @@ def load_market_data(listing_type="selling", start_date=None, end_date=None):
 @st.cache_data(ttl=3600)
 def get_cities(listing_type="selling"):
     """Get list of available cities."""
-    df = load_market_data(listing_type)
+    df = load_market_data_streamlit(listing_type)
     if 'city' in df.columns and not df.empty:
         cities = sorted(df['city'].unique())
         return ['All Lithuania'] + list(cities)
-    return ['All Lithuania']  # Return default if no data
-
-@st.cache_data(ttl=3600)
-def get_cities_streamlit(listing_type="selling"):
-    """Get list of available cities using Streamlit connection."""
-    try:
-        conn = get_streamlit_connection()
-        if conn is None:
-            return ['All Lithuania']
-        
-        table_name = "butai" if listing_type == "selling" else "butai_rent"
-        
-        query = f"""
-        SELECT DISTINCT city 
-        FROM {table_name} 
-        WHERE city IS NOT NULL 
-        ORDER BY city
-        """
-        
-        df = conn.query(query, ttl=3600)
-        cities = df['city'].tolist()
-        return ['All Lithuania'] + cities
-        
-    except Exception as e:
-        st.error(f"Failed to load cities: {e}")
-        return ['All Lithuania']
+    return ['All Lithuania']
 
 def filter_by_location(df, location):
     """Filter dataframe by selected location."""
@@ -283,7 +205,6 @@ def create_time_series_plot(df, listing_type):
     y1_label = 'Average Price (€)' if listing_type == 'selling' else 'Average Monthly Rent (€)'
     y2_label = 'Price/m² (€)' if listing_type == 'selling' else 'Rent/m² (€)'
     
-    # Create figure with secondary y-axis
     fig = go.Figure()
     
     # Add price line on primary y-axis
@@ -323,7 +244,6 @@ def create_price_vs_size_plot(df, listing_type):
     title = 'Monthly Rent vs Size' if listing_type == 'rental' else 'Price vs Size'
     y_label = 'Monthly Rent (€)' if listing_type == 'rental' else 'Price (€)'
     
-    # Create scatter plot
     fig = go.Figure()
     
     # Add scatter points
@@ -362,7 +282,6 @@ def create_price_vs_size_plot(df, listing_type):
 
 def create_price_vs_year_plot(df, listing_type):
     """Create scatter plot of price vs construction year grouped by decades."""
-    # Return empty figure if no data
     if df.empty:
         fig = go.Figure()
         fig.update_layout(
@@ -372,10 +291,8 @@ def create_price_vs_year_plot(df, listing_type):
         )
         return fig
     
-    # Filter out rows with missing or invalid years
     df = df[df['metai'].notna() & (df['metai'] >= 1900) & (df['metai'] <= datetime.now().year)]
     
-    # Return empty figure if no valid data after filtering
     if df.empty:
         fig = go.Figure()
         fig.update_layout(
@@ -392,7 +309,6 @@ def create_price_vs_year_plot(df, listing_type):
     title = 'Monthly Rent vs Construction Year' if listing_type == 'rental' else 'Price vs Construction Year'
     y_label = 'Monthly Rent (€)' if listing_type == 'rental' else 'Price (€)'
     
-    # Create scatter plot
     fig = go.Figure()
     
     # Add scatter points
@@ -411,10 +327,8 @@ def create_price_vs_year_plot(df, listing_type):
     ))
     
     # Add trend lines per decade
-    decades = sorted(df['decade'].unique())
-    for decade in decades:
+    for decade in sorted(df['decade'].unique()):
         decade_data = df[df['decade'] == decade]
-        # Skip decades with insufficient data points
         if len(decade_data) <= 2:
             continue
             
@@ -422,7 +336,6 @@ def create_price_vs_year_plot(df, listing_type):
             X = sm.add_constant(decade_data['metai'])
             model = sm.OLS(decade_data['price'], X).fit()
             
-            # Only add trendline if the model fit is successful
             if hasattr(model, 'params') and len(model.params) >= 2:
                 x_range = np.linspace(decade_data['metai'].min(), decade_data['metai'].max(), 10)
                 y_pred = model.params[0] + model.params[1] * x_range
@@ -446,7 +359,7 @@ def create_price_vs_year_plot(df, listing_type):
         showlegend=True,
         xaxis=dict(
             showgrid=True,
-            dtick=10  # Show gridlines every 10 years
+            dtick=10
         )
     )
     return fig
@@ -466,7 +379,7 @@ def create_property_type_prices_plot(df, listing_type):
     return fig
 
 def display_market_analysis():
-    """Display market analysis section with Streamlit connection management."""
+    """Display market analysis section."""
     st.header("📊 Market Analysis")
     
     # Add type selector, date range, and refresh button
@@ -490,36 +403,30 @@ def display_market_analysis():
     
     with col3:
         if st.button("🔄 Refresh Data"):
-            # Clear all caches
             load_market_data_streamlit.clear()
-            get_cities_streamlit.clear()
+            get_cities.clear()
             st.cache_data.clear()
             st.success("Data refreshed!")
 
-    # Test connection first
+    # Test database connection
     try:
-        conn = get_streamlit_connection()
+        conn = get_db_connection()
         if conn is None:
             st.error("❌ Unable to connect to database. Market analysis is temporarily unavailable.")
             st.info("💡 This feature requires database access. Please try again later or contact support.")
             return
-        
-        # Test with a simple query
-        test_df = conn.query("SELECT 1 as test", ttl=0)
-        if test_df.empty:
-            st.error("❌ Database connection test failed.")
-            return
+        conn.close()
             
     except Exception as e:
         st.error("❌ Database connection failed. Market analysis is temporarily unavailable.")
         st.info("💡 This feature requires database access. Please try again later.")
-        st.exception(e)  # For debugging
+        st.exception(e)
         return
 
     # Location selector
     selected_location = st.selectbox(
         "Select Location",
-        get_cities_streamlit(listing_type),
+        get_cities(listing_type),
         index=0
     )
 
@@ -541,7 +448,6 @@ def display_market_analysis():
         stats = calculate_basic_stats(filtered_df)
         trends = calculate_time_trends(filtered_df, listing_type)
         
-        # Show metrics in two rows
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Total Listings", f"{stats['total_listings']:,}")
@@ -552,7 +458,6 @@ def display_market_analysis():
             price_m2_label = "Average Rent/m²" if listing_type == "rental" else "Average Price/m²"
             st.metric(price_m2_label, f"€{stats['avg_price_per_m2']:,.2f}")
 
-        # Show trend information
         st.subheader("Price Trends")
         st.markdown(f"""
         Period: {trends['period']} ({trends['total_days']} days)
@@ -560,7 +465,6 @@ def display_market_analysis():
         - Percentage Change: {trends['price_change_pct']:.1f}%
         """)
 
-        # Display time series plot
         st.plotly_chart(create_time_series_plot(filtered_df, listing_type), use_container_width=True)
     
     with tab2:
@@ -593,7 +497,6 @@ def display_market_analysis():
             st.warning("No properties match the selected criteria.")
             return
         
-        # Show summary statistics first
         st.subheader("Summary Statistics")
         stats_df = pd.DataFrame({
             'Metric': ['Count', 'Average Price', 'Median Price', 'Average Price/m²', 'Average Area'],
@@ -607,7 +510,6 @@ def display_market_analysis():
         })
         st.table(stats_df)
 
-        # Display visualizations
         st.subheader("Property Distribution")
         col1, col2 = st.columns(2)
         with col1:
