@@ -35,50 +35,58 @@ def get_available_driver():
     
     raise Exception(f"No suitable SQL Server ODBC driver found. Available drivers: {drivers}")
 
+def get_streamlit_connection():
+    """Get or create Streamlit database connection."""
+    try:
+        # Use Streamlit's connection management with configuration from secrets
+        conn = st.connection(
+            "azure_sql",
+            type="sql",
+            url=f"mssql+pyodbc:///?odbc_connect={get_connection_string()}",
+            ttl=600  # Cache connection for 10 minutes
+        )
+        return conn
+    except Exception as e:
+        st.error(f"Failed to create Streamlit connection: {e}")
+        return None
 
 def get_connection_string():
-    """Get the appropriate connection string based on available drivers."""
+    """Get connection string for Streamlit connection."""
+    from urllib.parse import quote_plus
     
+    # Get database config from Streamlit secrets or environment
     try:
-        driver = get_available_driver()
-        print(f"Using ODBC driver: {driver}")
-    except Exception as e:
-        print(f"Driver detection error: {e}")
-        raise
+        server = st.secrets["database"]["DB_SERVER"]
+        database = st.secrets["database"]["DB_NAME"]
+        username = st.secrets["database"]["DB_USER"]
+        password = st.secrets["database"]["DB_PASSWORD"]
+    except:
+        # Fallback to environment variables
+        import os
+        from dotenv import load_dotenv
+        load_dotenv()
+        server = os.getenv('DB_SERVER')
+        database = os.getenv('DB_NAME')
+        username = os.getenv('DB_USER')
+        password = os.getenv('DB_PASSWORD')
     
-    # Add port to server if not already present
-    server = DATABASE_CONFIG['server']
+    # Add port if not present
     if ',' not in server and ':' not in server:
-        server = f"{server},1433"  # Add default SQL Server port
+        server = f"{server},1433"
     
-    # Different connection strings based on driver version
-    if "17" in driver:
-        # ODBC Driver 17 - optimized for cloud
-        connection_string = (
-            f"DRIVER={{{driver}}};"
-            f"SERVER={server};"
-            f"DATABASE={DATABASE_CONFIG['database']};"
-            f"UID={DATABASE_CONFIG['username']};"
-            f"PWD={DATABASE_CONFIG['password']};"
-            f"Encrypt=yes;"
-            f"Connection Timeout=60;"
-            f"Login Timeout=60;"
-        )
-    else:
-        # ODBC Driver 18 or others
-        connection_string = (
-            f"DRIVER={{{driver}}};"
-            f"SERVER={server};"
-            f"DATABASE={DATABASE_CONFIG['database']};"
-            f"UID={DATABASE_CONFIG['username']};"
-            f"PWD={DATABASE_CONFIG['password']};"
-            f"Encrypt=yes;"
-            f"TrustServerCertificate=yes;"
-            f"ConnectTimeout=60;"
-            f"LoginTimeout=60;"
-        )
+    # Create connection string
+    params = {
+        'DRIVER': '{ODBC Driver 17 for SQL Server}',
+        'SERVER': server,
+        'DATABASE': database,
+        'UID': username,
+        'PWD': password,
+        'Encrypt': 'yes',
+        'TrustServerCertificate': 'yes'
+    }
     
-    return connection_string
+    conn_str = ';'.join([f'{k}={v}' for k, v in params.items()])
+    return quote_plus(conn_str)
 
 def get_db_connection():
     """Connect to Azure SQL database using Streamlit connection management when available."""
