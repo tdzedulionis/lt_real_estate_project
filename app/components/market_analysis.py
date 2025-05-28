@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 import statsmodels.api as sm
 import streamlit as st
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from aruodas_scraper.database.database_manager import get_data, get_db_connection
+from aruodas_scraper.database.database_manager import get_data, get_db_connection, get_streamlit_connection
 
 @st.cache_data(ttl=600)  # Cache for 10 minutes
 def load_market_data_streamlit(listing_type="selling", start_date=None, end_date=None):
