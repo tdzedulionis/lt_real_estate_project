@@ -1,14 +1,13 @@
 """Database manager for handling SQL database operations with real estate data."""
 
-import sys
 import os
+import time
+import math
 import pyodbc
 import pandas as pd
-import math
-import time
 import unidecode
-from datetime import datetime
-from ..config.settings import DATABASE_CONFIG
+from urllib.parse import quote_plus
+from dotenv import load_dotenv
 
 try:
     import streamlit as st
@@ -17,13 +16,11 @@ except ImportError:
     STREAMLIT_AVAILABLE = False
 
 def get_available_driver():
-    """Get the first available SQL Server ODBC driver."""
+    """Get the most suitable available SQL Server ODBC driver."""
     drivers = pyodbc.drivers()
-    
-    # Preferred order of drivers
     preferred_drivers = [
         "ODBC Driver 18 for SQL Server",
-        "ODBC Driver 17 for SQL Server", 
+        "ODBC Driver 17 for SQL Server",
         "ODBC Driver 13 for SQL Server",
         "SQL Server Native Client 11.0",
         "SQL Server"
@@ -35,52 +32,42 @@ def get_available_driver():
     
     raise Exception(f"No suitable SQL Server ODBC driver found. Available drivers: {drivers}")
 
-def get_streamlit_connection():
-    """Get or create Streamlit database connection."""
-    try:
-        # Use Streamlit's connection management with configuration from secrets
-        conn = st.connection(
-            "azure_sql",
-            type="sql",
-            url=f"mssql+pyodbc:///?odbc_connect={get_connection_string()}",
-            ttl=600  # Cache connection for 10 minutes
-        )
-        return conn
-    except Exception as e:
-        st.error(f"Failed to create Streamlit connection: {e}")
-        return None
+def get_connection_config():
+    """Get database configuration from Streamlit secrets or environment variables."""
+    if STREAMLIT_AVAILABLE:
+        try:
+            return {
+                'server': st.secrets["database"]["DB_SERVER"],
+                'database': st.secrets["database"]["DB_NAME"],
+                'username': st.secrets["database"]["DB_USER"],
+                'password': st.secrets["database"]["DB_PASSWORD"]
+            }
+        except:
+            pass
+    
+    load_dotenv()
+    return {
+        'server': os.getenv('DB_SERVER'),
+        'database': os.getenv('DB_NAME'),
+        'username': os.getenv('DB_USER'),
+        'password': os.getenv('DB_PASSWORD')
+    }
 
 def get_connection_string():
-    """Get connection string for Streamlit connection."""
-    from urllib.parse import quote_plus
-    
-    # Get database config from Streamlit secrets or environment
-    try:
-        server = st.secrets["database"]["DB_SERVER"]
-        database = st.secrets["database"]["DB_NAME"]
-        username = st.secrets["database"]["DB_USER"]
-        password = st.secrets["database"]["DB_PASSWORD"]
-    except:
-        # Fallback to environment variables
-        import os
-        from dotenv import load_dotenv
-        load_dotenv()
-        server = os.getenv('DB_SERVER')
-        database = os.getenv('DB_NAME')
-        username = os.getenv('DB_USER')
-        password = os.getenv('DB_PASSWORD')
+    """Build connection string for database connection."""
+    config = get_connection_config()
+    driver = get_available_driver()
     
     # Add port if not present
-    if ',' not in server and ':' not in server:
-        server = f"{server},1433"
+    if ',' not in config['server'] and ':' not in config['server']:
+        config['server'] = f"{config['server']},1433"
     
-    # Create connection string
     params = {
-        'DRIVER': '{ODBC Driver 17 for SQL Server}',
-        'SERVER': server,
-        'DATABASE': database,
-        'UID': username,
-        'PWD': password,
+        'DRIVER': f'{{{driver}}}',
+        'SERVER': config['server'],
+        'DATABASE': config['database'],
+        'UID': config['username'],
+        'PWD': config['password'],
         'Encrypt': 'yes',
         'TrustServerCertificate': 'yes'
     }
@@ -90,53 +77,35 @@ def get_connection_string():
 
 def get_db_connection():
     """Connect to Azure SQL database using Streamlit connection management when available."""
-    
-    # Use Streamlit connection management if available
     if STREAMLIT_AVAILABLE:
         try:
-            # Use st.connection for automatic connection pooling and caching
-            conn = st.connection(
+            return st.connection(
                 "azure_sql",
                 type="sql",
                 url=f"mssql+pyodbc:///?odbc_connect={get_connection_string()}",
                 ttl=600  # Cache connection for 10 minutes
             )
-            return conn
         except Exception as e:
-            print(f"Streamlit connection failed: {e}")
-            # Fall back to manual connection
+            st.error(f"Failed to create Streamlit connection: {e}")
     
-    # Manual connection for non-Streamlit environments or fallback
-    max_attempts = 8
-    attempt = 0
+    max_attempts = 3
+    retry_delay = 5
     
     try:
         conn_str = get_connection_string()
+        for attempt in range(max_attempts):
+            try:
+                return pyodbc.connect(conn_str)
+            except pyodbc.Error as ex:
+                if attempt < max_attempts - 1:
+                    time.sleep(retry_delay)
+                else:
+                    raise
     except Exception as e:
-        print(f"Failed to get connection string: {e}")
+        print(f"Database connection error: {e}")
         return None
-    
-    while attempt < max_attempts:
-        try:
-            attempt += 1
-            print(f"Connection attempt {attempt}/{max_attempts}...")
-            conn = pyodbc.connect(conn_str)
-            print("Database connection established successfully.")
-            return conn
-        except pyodbc.Error as ex:
-            sqlstate = ex.args[0]
-            print(f"Database connection failed (attempt {attempt}/{max_attempts}): SQL State: {sqlstate} - {ex}")
-            if attempt < max_attempts:
-                print("Retrying connection in 5 seconds...")
-                time.sleep(5)
-            else:
-                print("Maximum retry attempts reached. Could not establish connection.")
-                return None
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-            return None
-        
-def create_table(df, table_name = "butai"):
+
+def create_table(df, table_name="butai"):
     """Create database table based on DataFrame schema if it doesn't exist."""
     conn = get_db_connection()
     if conn is None:
@@ -155,13 +124,9 @@ def create_table(df, table_name = "butai"):
         elif "float" in str(dtype).lower():
             sql_type = "FLOAT"
         elif "object" in str(dtype).lower():
-            if col_name in ("ypatybes", "papildomos_patalpos", "papildoma_iranga", "apsauga"):
-                sql_type = "NVARCHAR(MAX)"
-            else:
-                sql_type = "NVARCHAR(255)"
+            sql_type = "NVARCHAR(MAX)" if col_name in ("ypatybes", "papildomos_patalpos", "papildoma_iranga", "apsauga") else "NVARCHAR(255)"
         else:
             sql_type = "NVARCHAR(255)"
-            print(f"Warning: Unrecognized data type for '{col_name}': {dtype}. Using NVARCHAR(255).")
 
         columns_sql.append(f"[{col_name}] {sql_type}")
 
@@ -178,16 +143,14 @@ def create_table(df, table_name = "butai"):
         cursor = conn.cursor()
         cursor.execute(create_table_query)
         conn.commit()
-        print(f"Table '{table_name}' checked/created successfully.")
-    except pyodbc.Error as e:
+    except Exception as e:
         print(f"Error during table creation: {e}")
     finally:
         if conn:
             conn.close()
-            print("Database connection closed.")
 
 def process_value(value, value_type='string'):
-    """Convert value to specified type (int/float/string), handling edge cases and invalid values."""
+    """Convert value to specified type (int/float/string), handling edge cases."""
     if value is None or pd.isna(value) or str(value).lower() in ('nan', 'null', '', '-', 'infinity', '-infinity'):
         return None
 
@@ -213,58 +176,34 @@ def process_value(value, value_type='string'):
     except (ValueError, TypeError):
         return None
 
-def add_new_rows(df, table_name = "butai"):
+def add_new_rows(df, table_name="butai"):
     """Insert new DataFrame rows into database table, skipping existing records."""
     conn = get_db_connection()
     if conn is None:
         return
 
     cursor = conn.cursor()
-    successful_inserts = 0
-    skipped_rows = 0
-    failed_inserts = 0
+    stats = {'inserted': 0, 'skipped': 0, 'failed': 0}
+    
+    int_columns = ['price', 'namo_numeris', 'kambariu_sk', 'aukstas', 'aukstu_sk', 'metai', 'buto_numeris']
+    float_columns = ['plotas', 'latitude', 'longitude', 'distance_to_darzeliai',
+                    'distance_to_mokyklos', 'distance_to_stoteles', 'distance_to_parduotuves']
 
-    int_columns = [
-        'price', 'namo_numeris', 'kambariu_sk',
-        'aukstas', 'aukstu_sk', 'metai', 'buto_numeris'
-    ]
-    float_columns = [
-        'plotas', 'latitude', 'longitude', 'distance_to_darzeliai',
-        'distance_to_mokyklos', 'distance_to_stoteles', 'distance_to_parduotuves'
-    ]
-
-    data = df.to_dict('records')
-    columns = [
-        'url', 'price', 'namo_numeris', 'plotas', 'kambariu_sk', 'aukstas',
-        'aukstu_sk', 'metai', 'pastato_tipas', 'sildymas', 'irengimas',
-        'langu_orientacija', 'ypatybes', 'papildomos_patalpos',
-        'papildoma_iranga', 'apsauga', 'latitude', 'longitude', 'city',
-        'distance_to_darzeliai', 'distance_to_mokyklos', 'distance_to_stoteles',
-        'distance_to_parduotuves', 'pastato_energijos_suvartojimo_klase',
-        'buto_numeris', 'scrape_date'
-    ]
+    columns = ['url', 'price', 'namo_numeris', 'plotas', 'kambariu_sk', 'aukstas',
+               'aukstu_sk', 'metai', 'pastato_tipas', 'sildymas', 'irengimas',
+               'langu_orientacija', 'ypatybes', 'papildomos_patalpos',
+               'papildoma_iranga', 'apsauga', 'latitude', 'longitude', 'city',
+               'distance_to_darzeliai', 'distance_to_mokyklos', 'distance_to_stoteles',
+               'distance_to_parduotuves', 'pastato_energijos_suvartojimo_klase',
+               'buto_numeris', 'scrape_date']
 
     placeholders = ', '.join('?' * len(columns))
-    insert_query = f"""
-        INSERT INTO {table_name} (
-            {', '.join(columns)}
-        ) VALUES ({placeholders})
-    """
+    insert_query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
 
-    print("\nProcessing database records...")
-    for i, row in enumerate(data):
+    for row in df.to_dict('records'):
         try:
-            # Check if URL already exists
             cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE url = ?", (row["url"],))
-            exists = cursor.fetchone()[0]
-
-            sys.stdout.write(
-                f"\rRow {i+1}/{len(data)} - Success: {successful_inserts}, "
-                f"Skipped: {skipped_rows}, Failed: {failed_inserts}"
-            )
-            sys.stdout.flush()
-            
-            if exists == 0:
+            if cursor.fetchone()[0] == 0:
                 processed_row = {}
                 for key, value in row.items():
                     value_type = 'int' if key in int_columns else 'float' if key in float_columns else 'string'
@@ -272,28 +211,22 @@ def add_new_rows(df, table_name = "butai"):
 
                 values = [processed_row.get(col, None) for col in columns]
                 cursor.execute(insert_query, values)
-                successful_inserts += 1
+                stats['inserted'] += 1
             else:
-                skipped_rows += 1
-
-        except pyodbc.Error as e:
-            print(f"\nError inserting row (URL: {row.get('url', 'N/A')}): {e}")
-            failed_inserts += 1
+                stats['skipped'] += 1
         except Exception as e:
-            print(f"\nUnexpected error processing row: {e}")
-            failed_inserts += 1
+            print(f"Error processing row (URL: {row.get('url', 'N/A')}): {e}")
+            stats['failed'] += 1
 
     conn.commit()
     conn.close()
-    
-    print("\n\nDatabase Operations Summary:")
-    print(f"Successfully inserted: {successful_inserts} records")
-    print(f"Skipped (duplicates): {skipped_rows} records")
-    print(f"Failed to insert: {failed_inserts} records")
-    print("\nDatabase connection closed.")
+    print(f"\nDatabase Operations Summary:")
+    print(f"Successfully inserted: {stats['inserted']} records")
+    print(f"Skipped (duplicates): {stats['skipped']} records")
+    print(f"Failed to insert: {stats['failed']} records")
 
-def get_data(query = None, params = None, table_name = "butai"):
-    """Fetch data from database using custom query or default SELECT, returns DataFrame."""
+def get_data(query=None, params=None, table_name="butai"):
+    """Fetch data from database using custom query or default SELECT."""
     conn = get_db_connection()
     if conn is None:
         return pd.DataFrame()
@@ -301,54 +234,22 @@ def get_data(query = None, params = None, table_name = "butai"):
     try:
         if query is None:
             query = f"SELECT * FROM {table_name}"
-            params = None
-        
-        df = pd.read_sql(query, conn, params=params)
-        print(f"Successfully retrieved {len(df)} rows from database.")
-        return df
-
-    except pyodbc.Error as e:
-        print(f"Database error: {e}")
-        return pd.DataFrame()
+        return pd.read_sql(query, conn, params=params)
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        print(f"Error fetching data: {e}")
         return pd.DataFrame()
     finally:
         if conn:
             conn.close()
-            print("Database connection closed.")
-            
+
 def prepare_dataframe(df):
-    """
-    Cleans a Pandas DataFrame containing real estate listing data.
-
-    This function performs the following cleaning steps:
-        1. Replaces empty strings and various representations of null/NaN with None.
-        2. Standardizes column names: converts to lowercase, replaces spaces
-           with underscores, and transliterates Unicode characters to ASCII.
-        3. Converts specified columns to appropriate data types (integer, float).
-        4. Removes dots from column names.
-
-    Args:
-        df (pd.DataFrame): The input DataFrame to be cleaned.
-
-    Returns:
-        pd.DataFrame: The cleaned DataFrame.
-    """
+    """Clean DataFrame containing real estate listing data."""
     df = df.replace({"": None, "nan": None, "NaN": None, "NULL": None, "null": None})
 
-    new_columns = []
-    for col in df.columns:
-        new_col = col.lower().replace(" ", "_")
-        new_col = unidecode.unidecode(new_col)
-        new_columns.append(new_col)
-    df.columns = new_columns
+    # Standardize column names
+    df.columns = [unidecode.unidecode(col.lower().replace(" ", "_")) for col in df.columns]
 
-    int_columns = [
-        'price', 'namo_numeris', 'kambariu_sk',
-        'aukstas', 'aukstu_sk', 'metai', 'buto_numeris'
-    ]
-
+    # Process numeric columns
     if 'plotas' in df.columns:
         df['plotas'] = df['plotas'].apply(
             lambda x: None if pd.isna(x) or x == '' else
@@ -357,20 +258,17 @@ def prepare_dataframe(df):
             if isinstance(x, (str, int, float)) else None
         )
 
+    int_columns = ['price', 'namo_numeris', 'kambariu_sk', 'aukstas', 'aukstu_sk', 'metai', 'buto_numeris']
     for col in int_columns:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
 
-    float_columns = [
-        'plotas', 'latitude', 'longitude', 'distance_to_darzeliai',
-        'distance_to_mokyklos', 'distance_to_stoteles', 'distance_to_parduotuves'
-    ]
+    float_columns = ['plotas', 'latitude', 'longitude', 'distance_to_darzeliai',
+                    'distance_to_mokyklos', 'distance_to_stoteles', 'distance_to_parduotuves']
     for col in float_columns:
         if col in df.columns:
-            # Convert to numeric and replace NaN with None
             df[col] = pd.to_numeric(df[col], errors='coerce')
             df[col] = df[col].where(pd.notna(df[col]), None)
 
     df.columns = df.columns.str.replace('.', '', regex=False)
-
     return df
