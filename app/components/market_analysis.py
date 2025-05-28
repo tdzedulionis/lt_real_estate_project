@@ -113,7 +113,7 @@ def load_market_data(listing_type="selling", start_date=None, end_date=None):
         print(f"Error loading market data: {e}")
         return pd.DataFrame()
     finally:
-        if conn:
+        if conn and not isinstance(conn, st.connections.SQLConnection):
             conn.close()
 
 @st.cache_data(ttl=3600)
@@ -415,7 +415,15 @@ def display_market_analysis():
             st.error("❌ Unable to connect to database. Market analysis is temporarily unavailable.")
             st.info("💡 This feature requires database access. Please try again later or contact support.")
             return
-        conn.close()
+        
+        # Test connection with a simple query
+        if isinstance(conn, st.connections.SQLConnection):
+            conn.query("SELECT 1 as test", ttl=0)
+        else:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 as test")
+            cursor.close()
+            conn.close()
             
     except Exception as e:
         st.error("❌ Database connection failed. Market analysis is temporarily unavailable.")
