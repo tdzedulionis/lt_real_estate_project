@@ -45,11 +45,11 @@ def get_connection_string():
         f"Database={DATABASE_CONFIG['database']};"
         f"Uid={DATABASE_CONFIG['username']};"
         f"Pwd={DATABASE_CONFIG['password']};"
-        #"Encrypt=yes;"
-        #"TrustServerCertificate=yes;"
-        #"Connection Timeout=60;"
-        #"Login Timeout=60;"
-        #f"Command Timeout=300;"
+        f"Encrypt=yes;"
+        f"TrustServerCertificate=yes;"
+        f"Connection Timeout=60;"
+        f"Login Timeout=60;"
+        f"Command Timeout=300;"
     )
     
     return connection_string
