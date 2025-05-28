@@ -11,6 +11,90 @@ import streamlit as st
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from aruodas_scraper.database.database_manager import get_data, get_db_connection
 
+@st.cache_data(ttl=600)  # Cache for 10 minutes
+def load_market_data_streamlit(listing_type="selling", start_date=None, end_date=None):
+    """Load market data using Streamlit connection management."""
+    try:
+        conn = get_streamlit_connection()
+        if conn is None:
+            return pd.DataFrame()
+        
+        table_name = "butai" if listing_type == "selling" else "butai_rent"
+        
+        # Build date filter
+        date_filter = ""
+        if start_date and end_date:
+            date_filter = f"AND scrape_date BETWEEN '{start_date}' AND '{end_date}'"
+        
+        query = f"""
+        SELECT 
+            price,
+            plotas,
+            kambariu_sk,
+            city,
+            pastato_tipas,
+            metai,
+            scrape_date,
+            aukstas,
+            aukstu_sk
+        FROM {table_name}
+        WHERE price IS NOT NULL 
+        AND plotas IS NOT NULL
+        AND price > 0
+        AND plotas > 0
+        {date_filter}
+        """
+        
+        df = conn.query(query, ttl=300)  # Cache query results for 5 minutes
+        return df
+        
+    except Exception as e:
+        st.error(f"Failed to load market data: {e}")
+        # Fallback to original method
+        return load_market_data_fallback(listing_type, start_date, end_date)
+
+def load_market_data_fallback(listing_type="selling", start_date=None, end_date=None):
+    """Fallback method using original database connection."""
+    try:
+        from aruodas_scraper.database.database_manager import get_data, get_db_connection
+        
+        table_name = "butai_rent" if listing_type == "rental" else "butai"
+        
+        conn = get_db_connection()
+        if conn is None:
+            return pd.DataFrame()
+
+        # Build date filter
+        date_filter = ""
+        if start_date and end_date:
+            date_filter = f"AND scrape_date BETWEEN '{start_date}' AND '{end_date}'"
+
+        query = f"""
+        SELECT 
+            price,
+            plotas,
+            kambariu_sk,
+            city,
+            pastato_tipas,
+            metai,
+            scrape_date,
+            aukstas,
+            aukstu_sk
+        FROM {table_name}
+        WHERE price IS NOT NULL 
+        AND plotas IS NOT NULL
+        AND price > 0
+        AND plotas > 0
+        {date_filter}
+        """
+
+        df = get_data(query=query, table_name=table_name)
+        return df
+
+    except Exception as e:
+        print(f"Error in fallback data loading: {e}")
+        return pd.DataFrame()
+
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def load_market_data(listing_type="selling", start_date=None, end_date=None):
     """Load market data from database with caching."""
@@ -93,6 +177,31 @@ def get_cities(listing_type="selling"):
         cities = sorted(df['city'].unique())
         return ['All Lithuania'] + list(cities)
     return ['All Lithuania']  # Return default if no data
+
+@st.cache_data(ttl=3600)
+def get_cities_streamlit(listing_type="selling"):
+    """Get list of available cities using Streamlit connection."""
+    try:
+        conn = get_streamlit_connection()
+        if conn is None:
+            return ['All Lithuania']
+        
+        table_name = "butai" if listing_type == "selling" else "butai_rent"
+        
+        query = f"""
+        SELECT DISTINCT city 
+        FROM {table_name} 
+        WHERE city IS NOT NULL 
+        ORDER BY city
+        """
+        
+        df = conn.query(query, ttl=3600)
+        cities = df['city'].tolist()
+        return ['All Lithuania'] + cities
+        
+    except Exception as e:
+        st.error(f"Failed to load cities: {e}")
+        return ['All Lithuania']
 
 def filter_by_location(df, location):
     """Filter dataframe by selected location."""
@@ -357,10 +466,10 @@ def create_property_type_prices_plot(df, listing_type):
     return fig
 
 def display_market_analysis():
-    """Display market analysis section."""
+    """Display market analysis section with Streamlit connection management."""
     st.header("📊 Market Analysis")
     
-    # type selector, date range, and refresh button
+    # Add type selector, date range, and refresh button
     col1, col2, col3 = st.columns([2, 2, 1])
     with col1:
         listing_type = st.radio(
@@ -381,35 +490,44 @@ def display_market_analysis():
     
     with col3:
         if st.button("🔄 Refresh Data"):
-            load_market_data.clear()
-            get_cities.clear()
+            # Clear all caches
+            load_market_data_streamlit.clear()
+            get_cities_streamlit.clear()
+            st.cache_data.clear()
             st.success("Data refreshed!")
 
-    # Test database connection
+    # Test connection first
     try:
-        from aruodas_scraper.database.database_manager import get_db_connection
-        conn = get_db_connection()
+        conn = get_streamlit_connection()
         if conn is None:
             st.error("❌ Unable to connect to database. Market analysis is temporarily unavailable.")
             st.info("💡 This feature requires database access. Please try again later or contact support.")
             return
-        conn.close()
+        
+        # Test with a simple query
+        test_df = conn.query("SELECT 1 as test", ttl=0)
+        if test_df.empty:
+            st.error("❌ Database connection test failed.")
+            return
+            
     except Exception as e:
         st.error("❌ Database connection failed. Market analysis is temporarily unavailable.")
         st.info("💡 This feature requires database access. Please try again later.")
+        st.exception(e)  # For debugging
         return
 
     # Location selector
     selected_location = st.selectbox(
         "Select Location",
-        get_cities(listing_type),
+        get_cities_streamlit(listing_type),
         index=0
     )
 
     # Load and filter data
-    start_date, end_date = date_range if len(date_range) == 2 else (None, None)
-    df = load_market_data(listing_type, start_date, end_date)
-    filtered_df = filter_by_location(df, selected_location)
+    with st.spinner("Loading market data..."):
+        start_date, end_date = date_range if len(date_range) == 2 else (None, None)
+        df = load_market_data_streamlit(listing_type, start_date, end_date)
+        filtered_df = filter_by_location(df, selected_location)
 
     if len(filtered_df) == 0:
         st.warning("No data available for the selected location and date range.")

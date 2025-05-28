@@ -10,6 +10,12 @@ import unidecode
 from datetime import datetime
 from ..config.settings import DATABASE_CONFIG
 
+try:
+    import streamlit as st
+    STREAMLIT_AVAILABLE = True
+except ImportError:
+    STREAMLIT_AVAILABLE = False
+
 def get_available_driver():
     """Get the first available SQL Server ODBC driver."""
     drivers = pyodbc.drivers()
@@ -29,6 +35,7 @@ def get_available_driver():
     
     raise Exception(f"No suitable SQL Server ODBC driver found. Available drivers: {drivers}")
 
+
 def get_connection_string():
     """Get the appropriate connection string based on available drivers."""
     
@@ -44,14 +51,21 @@ def get_connection_string():
     if ',' not in server and ':' not in server:
         server = f"{server},1433"  # Add default SQL Server port
     
-    print(f"Server with port: {server}")
-    print(f"Database: {DATABASE_CONFIG['database']}")
-    print(f"Username: {DATABASE_CONFIG['username']}")
-    print(f"Password: {'*' * len(DATABASE_CONFIG['password']) if DATABASE_CONFIG['password'] else 'None'}")
-    
     # Different connection strings based on driver version
-    if "18" in driver:
-        # ODBC Driver 18 - requires TrustServerCertificate for cloud connections
+    if "17" in driver:
+        # ODBC Driver 17 - optimized for cloud
+        connection_string = (
+            f"DRIVER={{{driver}}};"
+            f"SERVER={server};"
+            f"DATABASE={DATABASE_CONFIG['database']};"
+            f"UID={DATABASE_CONFIG['username']};"
+            f"PWD={DATABASE_CONFIG['password']};"
+            f"Encrypt=yes;"
+            f"Connection Timeout=60;"
+            f"Login Timeout=60;"
+        )
+    else:
+        # ODBC Driver 18 or others
         connection_string = (
             f"DRIVER={{{driver}}};"
             f"SERVER={server};"
@@ -63,31 +77,31 @@ def get_connection_string():
             f"ConnectTimeout=60;"
             f"LoginTimeout=60;"
         )
-    else:
-        # ODBC Driver 17 or older - standard connection
-        connection_string = (
-            f"DRIVER={{{driver}}};"
-            f"SERVER={server};"
-            f"DATABASE={DATABASE_CONFIG['database']};"
-            f"UID={DATABASE_CONFIG['username']};"
-            f"PWD={DATABASE_CONFIG['password']};"
-            f"Encrypt=yes;"
-            f"Connection Timeout=60;"
-            f"Login Timeout=60;"
-        )
-    
-    # Debug: Print connection string (mask password)
-    masked_conn_str = connection_string.replace(DATABASE_CONFIG['password'], '*' * len(DATABASE_CONFIG['password']))
-    print(f"Connection string: {masked_conn_str}")
     
     return connection_string
 
 def get_db_connection():
-    """Connect to Azure SQL database with retry logic, returns Connection object or None."""
+    """Connect to Azure SQL database using Streamlit connection management when available."""
+    
+    # Use Streamlit connection management if available
+    if STREAMLIT_AVAILABLE:
+        try:
+            # Use st.connection for automatic connection pooling and caching
+            conn = st.connection(
+                "azure_sql",
+                type="sql",
+                url=f"mssql+pyodbc:///?odbc_connect={get_connection_string()}",
+                ttl=600  # Cache connection for 10 minutes
+            )
+            return conn
+        except Exception as e:
+            print(f"Streamlit connection failed: {e}")
+            # Fall back to manual connection
+    
+    # Manual connection for non-Streamlit environments or fallback
     max_attempts = 8
     attempt = 0
     
-
     try:
         conn_str = get_connection_string()
     except Exception as e:
